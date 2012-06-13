@@ -44,16 +44,12 @@ func (egp *ExprGenParams) CheckExprTmp( e Expr ) bool {
 }
 func (egp *ExprGenParams) CheckExpr( e Expr ) bool {
     if e.Size() < egp.MinSize {
-      //    fmt.Printf( "Too SMALL:  e:%v  l:%v\n", e.Size(), egp.TmpMinSize )
       return false
     } else if e.Size() > egp.MaxSize {
-      //    fmt.Printf( "Too LARGE:  e:%v  l:%v\n", e.Size(), egp.TmpMaxSize )
       return false
     } else if  e.Height() < egp.MinDepth {
-      //    fmt.Printf( "Too SHORT:  e:%v  l:%v\n", e.Height(), egp.TmpMinDepth )
       return false
     } else if  e.Height() > egp.MaxDepth {
-      //    fmt.Printf( "Too TALL:  e:%v  l:%v\n", e.Height(), egp.TmpMaxDepth )
       return false
     }
     return true

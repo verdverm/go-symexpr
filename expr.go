@@ -6,9 +6,9 @@ import (
   "sort"
 )
 
-type CoeffSet struct {
-  Vals []float64
-}
+// type CoeffSet struct {
+//   Vals []float64
+// }
 
 
 type Expr interface {
@@ -23,7 +23,15 @@ type Expr interface {
   AmILess( rhs Expr ) bool
   AmISame( rhs Expr ) bool
   AmIAlmostSame( rhs Expr ) bool
+
   HasVar() bool
+  HasVarI(i int) bool
+  HasConst() bool
+  HasConstI(i int) bool
+  NumConstants() int // only Constant NOT ConstantF
+//   IndexConstants( ci int ) int
+  ConvertToConstantFs( cs []float64 ) Expr
+  ConvertToConstants( cs[]float64 ) ([]float64, Expr)
 
   Clone() Expr
 
@@ -32,6 +40,7 @@ type Expr interface {
   setExpr( pos *int , e Expr ) (bool,bool)
 
   String() string
+  Serial([]int) []int
 // 	WriteString( buf *bytes.Buffer )
 
   Eval(t float64, x, c, s []float64) float64
@@ -40,6 +49,8 @@ type Expr interface {
 
   CalcExprStats( currDepth int ) (mySize int)
   Simplify( rules SimpRules ) Expr
+  DerivVar( i int ) Expr
+  DerivConst( i int ) Expr
 
 }
 
@@ -52,15 +63,15 @@ func (p ExprArray) Less(i, j int) bool {
   if p[j] == nil { return true 	}
   return p[i].AmILess( p[j] )
 }
-type ExprArraySort struct {
-  ExprReportArray
-}
-func (p ExprArraySort) Less(i, j int) bool {
-  if p.ExprReportArray[i] == nil && p.ExprReportArray[j] == nil { return false }
-  if p.ExprReportArray[i] == nil { return false }
-  if p.ExprReportArray[j] == nil { return true 	}
-  return p.ExprReportArray[i].AmILess( p.ExprReportArray[j] )
-}
+// type ExprArraySort struct {
+//   ExprReportArray
+// }
+// func (p ExprArraySort) Less(i, j int) bool {
+//   if p.ExprReportArray[i] == nil && p.ExprReportArray[j] == nil { return false }
+//   if p.ExprReportArray[i] == nil { return false }
+//   if p.ExprReportArray[j] == nil { return true 	}
+//   return p.ExprReportArray[i].AmILess( p.ExprReportArray[j] )
+// }
 
 const (
   MaxAddChildren = 8
@@ -94,6 +105,8 @@ const (
   POWE
 
   EXPR_MAX
+  STARTVAR
+
 )
 
 type ExprStats struct {
@@ -189,7 +202,7 @@ type PowF struct {
 // Binary Operators
 type Add struct {
   ExprStats
-  CS [MaxAddChildren]Expr
+  CS []Expr
 }
 func (n *Add) Len() int { return len(n.CS) }
 func (n *Add) Swap(i, j int) { n.CS[i], n.CS[j] = n.CS[j], n.CS[i] }
@@ -200,6 +213,22 @@ func (n *Add) Less(i, j int) bool {
   return n.CS[i].AmILess( n.CS[j] )
 }
 
+func NewAdd() *Add {
+  a := new( Add )
+  a.CS = make([]Expr,0,MaxAddChildren)
+  return a
+}
+
+func (a *Add) Insert( e Expr ) {
+  if len(a.CS) == cap(a.CS) {
+    tmp := make([]Expr,len(a.CS),2*len(a.CS))
+    copy(tmp[:len(a.CS)],a.CS)
+    a.CS = tmp
+  }
+  a.CS = append(a.CS,e)
+  sort.Sort(a)
+}
+
 type Sub struct {
   ExprStats
   C1 Expr
@@ -207,8 +236,23 @@ type Sub struct {
 }
 type Mul struct {
   ExprStats
-  CS [MaxMulChildren]Expr
+  CS []Expr
 }
+func NewMul() *Mul {
+  m := new( Mul )
+  m.CS = make([]Expr,0,MaxAddChildren)
+  return m
+}
+func (a *Mul) Insert( e Expr ) {
+  if len(a.CS) == cap(a.CS) {
+    tmp := make([]Expr,len(a.CS),2*len(a.CS))
+    copy(tmp[:len(a.CS)],a.CS)
+    a.CS = tmp
+  }
+  a.CS = append(a.CS,e)
+  sort.Sort(a)
+}
+
 func (n *Mul) Len() int { return len(n.CS) }
 func (n *Mul) Swap(i, j int) { n.CS[i], n.CS[j] = n.CS[j], n.CS[i] }
 func (n *Mul) Less(i, j int) bool {
@@ -270,6 +314,7 @@ func (c *Constant) AmILess( r Expr ) bool {
 func (c *ConstantF) AmILess( r Expr ) bool {
   if CONSTANTF < r.ExprType() { return true }
   if CONSTANTF > r.ExprType() { return false }
+  return false
   return c.F < r.(*ConstantF).F
 }
 func (s *System) AmILess( r Expr ) bool   {
@@ -332,9 +377,11 @@ func (n *Add) AmILess( r Expr ) bool      {
   if ADD < r.ExprType() { return true }
   if ADD > r.ExprType() { return false }
   m := r.(*Add)
+  ln := len(n.CS)
+  lm := len(m.CS)
+  if ln < lm { return true }
+  if lm < ln { return false }
   for i,C := range n.CS {
-    if C == nil { return false }
-    if m.CS[i] == nil { return true }
     if C.AmILess( m.CS[i] ) { return true }
     if m.CS[i].AmILess( C ) { return false }
   }
@@ -351,9 +398,11 @@ func (n *Mul) AmILess( r Expr ) bool      {
   if MUL < r.ExprType() { return true }
   if MUL > r.ExprType() { return false }
   m := r.(*Mul)
+  ln := len(n.CS)
+  lm := len(m.CS)
+  if ln < lm { return true }
+  if lm < ln { return false }
   for i,C := range n.CS {
-    if C == nil { return false }
-    if m.CS[i] == nil { return true }
     if C.AmILess( m.CS[i] ) { return true }
     if m.CS[i].AmILess( C ) { return false }
   }
@@ -381,7 +430,7 @@ func (n *Null) AmISame( r Expr ) bool     { return r.ExprType() == NULL }
 func (n *Time) AmISame( r Expr ) bool     { return r.ExprType() == TIME }
 func (v *Var) AmISame( r Expr ) bool      { return r.ExprType() == VAR && r.(*Var).P == v.P }
 func (c *Constant) AmISame( r Expr ) bool { return r.ExprType() == CONSTANT && r.(*Constant).P == c.P }
-func (c *ConstantF) AmISame( r Expr ) bool { return r.ExprType() == CONSTANTF && r.(*ConstantF).F == c.F }
+func (c *ConstantF) AmISame( r Expr ) bool { return r.ExprType() == CONSTANTF/* && r.(*ConstantF).F == c.F*/ }
 func (s *System) AmISame( r Expr ) bool   { return r.ExprType() == SYSTEM && r.(*System).P == s.P }
 
 func (u *Neg) AmISame( r Expr ) bool 	  { return r.ExprType() == NEG && u.C.AmISame(r.(*Neg).C) }
@@ -397,10 +446,8 @@ func (u *PowF) AmISame( r Expr ) bool 	  { return r.ExprType() == POWF && r.(*Po
 func (n *Add) AmISame( r Expr ) bool      {
   if r.ExprType() != ADD { return false }
   m := r.(*Add)
+  if len(n.CS) != len(m.CS) { return false }
   for i,C := range n.CS {
-    if C == nil && m.CS[i] == nil { continue }
-    if C == nil && m.CS[i] != nil { return false }
-    if C != nil && m.CS[i] == nil { return false }
     if !C.AmISame( m.CS[i] ) { return false }
     if m.CS[i].AmILess( C ) { return false }
   }
@@ -412,10 +459,8 @@ func (n *Sub) AmISame( r Expr ) bool      { return r.ExprType() == SUB  && n.C1.
 func (n *Mul) AmISame( r Expr ) bool      {
   if r.ExprType() != MUL { return false }
   m := r.(*Mul)
+  if len(n.CS) != len(m.CS) { return false }
   for i,C := range n.CS {
-    if C == nil && m.CS[i] == nil { continue }
-    if C == nil && m.CS[i] != nil { return false }
-    if C != nil && m.CS[i] == nil { return false }
     if !C.AmISame( m.CS[i] ) { return false }
     if m.CS[i].AmILess( C ) { return false }
   }
@@ -448,13 +493,14 @@ func (u *PowF) AmIAlmostSame( r Expr ) bool 	  { return r.ExprType() == POWF && 
 func (n *Add) AmIAlmostSame( r Expr ) bool      {
   if r.ExprType() != ADD { return false }
   m := r.(*Add)
+  if len(n.CS) != len(m.CS) { return false }
+  same := true
   for i,C := range n.CS {
-    if C == nil && m.CS[i] == nil { continue }
-    if C == nil && m.CS[i] != nil { return false }
-    if C != nil && m.CS[i] == nil { return false }
-    if !C.AmIAlmostSame( m.CS[i] ) && m.CS[i].AmILess( C ) { return false }
+    if !C.AmIAlmostSame( m.CS[i] ) /*&& m.CS[i].AmILess( C )*/ { return false }
+//     if C.AmILess( m.CS[i] ) || m.CS[i].AmILess( C ) { return false }
+//     if !C.AmIAlmostSame( m.CS[i] ) { same = false }
   }
-  return true
+  return same
 }
 
 func (n *Sub) AmIAlmostSame( r Expr ) bool      { return r.ExprType() == SUB  && n.C1.AmIAlmostSame(r.(*Sub).C1) && n.C2.AmIAlmostSame(r.(*Sub).C2)  }
@@ -462,13 +508,14 @@ func (n *Sub) AmIAlmostSame( r Expr ) bool      { return r.ExprType() == SUB  &&
 func (n *Mul) AmIAlmostSame( r Expr ) bool      {
   if r.ExprType() != MUL { return false }
   m := r.(*Mul)
+  if len(n.CS) != len(m.CS) { return false }
+  same := true
   for i,C := range n.CS {
-    if C == nil && m.CS[i] == nil { continue }
-    if C == nil && m.CS[i] != nil { return false }
-    if C != nil && m.CS[i] == nil { return false }
-    if !C.AmIAlmostSame( m.CS[i] ) && m.CS[i].AmILess( C ) { return false }
+    if !C.AmIAlmostSame( m.CS[i] ) /*&& m.CS[i].AmILess( C )*/ { return false }
+//     if C.AmILess( m.CS[i] ) || m.CS[i].AmILess( C ) { return false }
+//     if !C.AmIAlmostSame( m.CS[i] ) { same = false }
   }
-  return true
+  return same
 }
 
 func (n *Div) AmIAlmostSame( r Expr ) bool      { return r.ExprType() == DIV  && n.Numer.AmIAlmostSame(r.(*Div).Numer) && n.Denom.AmIAlmostSame(r.(*Div).Denom)  }
@@ -484,15 +531,15 @@ func (c *Constant) HasVar() bool { return false }
 func (c *ConstantF) HasVar() bool { return false }
 func (s *System) HasVar() bool   { return false }
 
-func (u *Neg) HasVar() bool 	  { return u.C.HasVar() }
-func (u *Abs) HasVar() bool 	  { return u.C.HasVar() }
-func (u *Sqrt) HasVar() bool 	  { return u.C.HasVar() }
-func (u *Sin) HasVar() bool 	  { return u.C.HasVar() }
-func (u *Cos) HasVar() bool  	  { return u.C.HasVar() }
-func (u *Exp) HasVar() bool 	  { return u.C.HasVar() }
-func (u *Log) HasVar() bool 	  { return u.C.HasVar() }
-func (u *PowI) HasVar() bool 	  { return u.Base.HasVar() }
-func (u *PowF) HasVar() bool 	  { return u.Base.HasVar() }
+func (u *Neg) HasVar() bool     { return u.C.HasVar() }
+func (u *Abs) HasVar() bool     { return u.C.HasVar() }
+func (u *Sqrt) HasVar() bool    { return u.C.HasVar() }
+func (u *Sin) HasVar() bool     { return u.C.HasVar() }
+func (u *Cos) HasVar() bool     { return u.C.HasVar() }
+func (u *Exp) HasVar() bool     { return u.C.HasVar() }
+func (u *Log) HasVar() bool     { return u.C.HasVar() }
+func (u *PowI) HasVar() bool    { return u.Base.HasVar() }
+func (u *PowF) HasVar() bool    { return u.Base.HasVar() }
 
 func (n *Add) HasVar() bool      {
   for _,C := range n.CS {
@@ -512,6 +559,393 @@ func (n *Mul) HasVar() bool      {
 
 func (n *Div) HasVar() bool      { return n.Numer.HasVar() || n.Denom.HasVar()  }
 func (n *PowE) HasVar() bool     { return n.Base.HasVar()  || n.Power.HasVar() }
+
+
+
+func (n *Null) HasVarI( i int ) bool     { return false }
+func (n *Time) HasVarI( i int ) bool     { return false }
+func (v *Var) HasVarI( i int ) bool      { return v.P == i }
+func (c *Constant) HasVarI( i int ) bool { return false }
+func (c *ConstantF) HasVarI( i int ) bool { return false }
+func (s *System) HasVarI( i int ) bool   { return false }
+
+func (u *Neg) HasVarI( i int ) bool     { return u.C.HasVarI(i) }
+func (u *Abs) HasVarI( i int ) bool     { return u.C.HasVarI(i) }
+func (u *Sqrt) HasVarI( i int ) bool    { return u.C.HasVarI(i) }
+func (u *Sin) HasVarI( i int ) bool     { return u.C.HasVarI(i) }
+func (u *Cos) HasVarI( i int ) bool     { return u.C.HasVarI(i) }
+func (u *Exp) HasVarI( i int ) bool     { return u.C.HasVarI(i) }
+func (u *Log) HasVarI( i int ) bool     { return u.C.HasVarI(i) }
+func (u *PowI) HasVarI( i int ) bool    { return u.Base.HasVarI(i) }
+func (u *PowF) HasVarI( i int ) bool    { return u.Base.HasVarI(i) }
+
+func (n *Add) HasVarI( i int ) bool      {
+  for _,C := range n.CS {
+    if C != nil && C.HasVarI(i) { return true }
+  }
+  return false
+}
+
+func (n *Sub) HasVarI( i int ) bool      { return n.C1.HasVarI(i) || n.C2.HasVarI(i)  }
+
+func (n *Mul) HasVarI( i int ) bool      {
+  for _,C := range n.CS {
+    if C != nil &&  C.HasVarI(i) { return true }
+  }
+  return false
+}
+
+func (n *Div) HasVarI( i int ) bool      { return n.Numer.HasVarI(i) || n.Denom.HasVarI(i)  }
+func (n *PowE) HasVarI( i int ) bool     { return n.Base.HasVarI(i)  || n.Power.HasVarI(i) }
+
+
+
+
+
+func (n *Null) HasConstI( i int ) bool     { return false }
+func (n *Time) HasConstI( i int ) bool     { return false }
+func (v *Var) HasConstI( i int ) bool      { return false }
+func (c *Constant) HasConstI( i int ) bool { return c.P == i }
+func (c *ConstantF) HasConstI( i int ) bool { return false }
+func (s *System) HasConstI( i int ) bool   { return false }
+
+func (u *Neg) HasConstI( i int ) bool     { return u.C.HasConstI(i) }
+func (u *Abs) HasConstI( i int ) bool     { return u.C.HasConstI(i) }
+func (u *Sqrt) HasConstI( i int ) bool    { return u.C.HasConstI(i) }
+func (u *Sin) HasConstI( i int ) bool     { return u.C.HasConstI(i) }
+func (u *Cos) HasConstI( i int ) bool     { return u.C.HasConstI(i) }
+func (u *Exp) HasConstI( i int ) bool     { return u.C.HasConstI(i) }
+func (u *Log) HasConstI( i int ) bool     { return u.C.HasConstI(i) }
+func (u *PowI) HasConstI( i int ) bool    { return u.Base.HasConstI(i) }
+func (u *PowF) HasConstI( i int ) bool    { return u.Base.HasConstI(i) }
+
+func (n *Add) HasConstI( i int ) bool      {
+  for _,C := range n.CS {
+    if C != nil && C.HasConstI(i) { return true }
+  }
+  return false
+}
+
+func (n *Sub) HasConstI( i int ) bool      { return n.C1.HasConstI(i) || n.C2.HasConstI(i)  }
+
+func (n *Mul) HasConstI( i int ) bool      {
+  for _,C := range n.CS {
+    if C != nil &&  C.HasConstI(i) { return true }
+  }
+  return false
+}
+
+func (n *Div) HasConstI( i int ) bool      { return n.Numer.HasConstI(i) || n.Denom.HasConstI(i)  }
+func (n *PowE) HasConstI( i int ) bool     { return n.Base.HasConstI(i)  || n.Power.HasConstI(i) }
+
+
+
+
+func (n *Null) HasConst() bool     { return false }
+func (n *Time) HasConst() bool     { return false }
+func (v *Var) HasConst() bool      { return false }
+func (c *Constant) HasConst() bool { return true }
+func (c *ConstantF) HasConst() bool { return false }
+func (s *System) HasConst() bool   { return false }
+
+func (u *Neg) HasConst() bool     { return u.C.HasConst() }
+func (u *Abs) HasConst() bool     { return u.C.HasConst() }
+func (u *Sqrt) HasConst() bool    { return u.C.HasConst() }
+func (u *Sin) HasConst() bool     { return u.C.HasConst() }
+func (u *Cos) HasConst() bool     { return u.C.HasConst() }
+func (u *Exp) HasConst() bool     { return u.C.HasConst() }
+func (u *Log) HasConst() bool     { return u.C.HasConst() }
+func (u *PowI) HasConst() bool    { return u.Base.HasConst() }
+func (u *PowF) HasConst() bool    { return u.Base.HasConst() }
+
+func (n *Add) HasConst() bool      {
+  for _,C := range n.CS {
+    if C != nil && C.HasConst() { return true }
+  }
+  return false
+}
+
+func (n *Sub) HasConst() bool      { return n.C1.HasConst() || n.C2.HasConst()  }
+
+func (n *Mul) HasConst() bool      {
+  for _,C := range n.CS {
+    if C != nil &&  C.HasConst() { return true }
+  }
+  return false
+}
+
+func (n *Div) HasConst() bool      { return n.Numer.HasConst() || n.Denom.HasConst()  }
+func (n *PowE) HasConst() bool     { return n.Base.HasConst()  || n.Power.HasConst() }
+
+
+
+func (n *Null) NumConstants() int     { return 0 }
+func (n *Time) NumConstants() int     { return 0 }
+func (v *Var) NumConstants() int      { return 0 }
+func (c *Constant) NumConstants() int { return 1 }
+func (c *ConstantF) NumConstants() int { return 0 }
+func (s *System) NumConstants() int   { return 0 }
+
+func (u *Neg) NumConstants() int     { return u.C.NumConstants() }
+func (u *Abs) NumConstants() int     { return u.C.NumConstants() }
+func (u *Sqrt) NumConstants() int    { return u.C.NumConstants() }
+func (u *Sin) NumConstants() int     { return u.C.NumConstants() }
+func (u *Cos) NumConstants() int     { return u.C.NumConstants() }
+func (u *Exp) NumConstants() int     { return u.C.NumConstants() }
+func (u *Log) NumConstants() int     { return u.C.NumConstants() }
+func (u *PowI) NumConstants() int    { return u.Base.NumConstants() }
+func (u *PowF) NumConstants() int    { return u.Base.NumConstants() }
+
+func (n *Add) NumConstants() int      {
+  sum := 0
+  for _,C := range n.CS {
+    if C != nil { sum += C.NumConstants() }
+  }
+  return sum
+}
+
+func (n *Sub) NumConstants() int      { return n.C1.NumConstants() + n.C2.NumConstants()  }
+
+func (n *Mul) NumConstants() int      {
+  sum := 0
+  for _,C := range n.CS {
+    if C != nil { sum += C.NumConstants() }
+  }
+  return sum
+}
+
+func (n *Div) NumConstants() int      { return n.Numer.NumConstants() + n.Denom.NumConstants()  }
+func (n *PowE) NumConstants() int     { return n.Base.NumConstants()  + n.Power.NumConstants() }
+
+
+
+
+func (n *Null) ConvertToConstantFs( cs []float64 ) Expr     { return n }
+func (n *Time) ConvertToConstantFs( cs []float64 ) Expr     { return n }
+func (v *Var) ConvertToConstantFs( cs []float64 ) Expr      { return v }
+func (c *Constant) ConvertToConstantFs( cs []float64 ) Expr { return &ConstantF{F: cs[c.P]} }
+func (c *ConstantF) ConvertToConstantFs( cs []float64 ) Expr { return c }
+func (s *System) ConvertToConstantFs( cs []float64 ) Expr   { return s }
+
+func (u *Neg) ConvertToConstantFs( cs []float64 ) Expr     {
+  e := u.C.ConvertToConstantFs(cs)
+  if u.C != e {
+    u.C = e
+  }
+  return u
+}
+func (u *Abs) ConvertToConstantFs( cs []float64 ) Expr     {
+  e := u.C.ConvertToConstantFs(cs)
+  if u.C != e {
+    u.C = e
+  }
+  return u
+}
+func (u *Sqrt) ConvertToConstantFs( cs []float64 ) Expr    {
+  e := u.C.ConvertToConstantFs(cs)
+  if u.C != e {
+    u.C = e
+  }
+  return u
+}
+func (u *Sin) ConvertToConstantFs( cs []float64 ) Expr     {
+  e := u.C.ConvertToConstantFs(cs)
+  if u.C != e {
+    u.C = e
+  }
+  return u
+}
+func (u *Cos) ConvertToConstantFs( cs []float64 ) Expr     {
+  e := u.C.ConvertToConstantFs(cs)
+  if u.C != e {
+    u.C = e
+  }
+  return u
+}
+func (u *Exp) ConvertToConstantFs( cs []float64 ) Expr     {
+  e := u.C.ConvertToConstantFs(cs)
+  if u.C != e {
+    u.C = e
+  }
+  return u
+}
+func (u *Log) ConvertToConstantFs( cs []float64 ) Expr     {
+  e := u.C.ConvertToConstantFs(cs)
+  if u.C != e {
+    u.C = e
+  }
+  return u
+}
+func (u *PowI) ConvertToConstantFs( cs []float64 ) Expr    {
+  e := u.Base.ConvertToConstantFs(cs)
+  if u.Base != e {
+    u.Base = e
+  }
+  return u
+}
+func (u *PowF) ConvertToConstantFs( cs []float64 ) Expr    {
+  e := u.Base.ConvertToConstantFs(cs)
+  if u.Base != e {
+    u.Base = e
+  }
+  return u
+}
+
+func (n *Add) ConvertToConstantFs( cs []float64 ) Expr      {
+  for i,_ := range n.CS {
+    if n.CS[i] != nil {
+      e := n.CS[i].ConvertToConstantFs(cs)
+      if n.CS[i] != e {
+        n.CS[i] = e
+      }
+    }
+  }
+  return n
+}
+
+func (n *Sub) ConvertToConstantFs( cs []float64 ) Expr      {
+  e1,e2 := n.C1.ConvertToConstantFs(cs), n.C2.ConvertToConstantFs(cs)
+  if n.C1 != e1 { n.C1 = e1 }
+  if n.C2 != e2 { n.C2 = e2 }
+  return n
+}
+
+func (n *Mul) ConvertToConstantFs( cs []float64 ) Expr      {
+  for i,_ := range n.CS {
+    if n.CS[i] != nil {
+      e := n.CS[i].ConvertToConstantFs(cs)
+      if n.CS[i] != e {
+        n.CS[i] = e
+      }
+    }
+  }
+  return n
+}
+
+func (n *Div) ConvertToConstantFs( cs []float64 ) Expr      {
+  e1,e2 := n.Numer.ConvertToConstantFs(cs), n.Denom.ConvertToConstantFs(cs)
+  if n.Numer != e1 { n.Numer = e1 }
+  if n.Denom != e2 { n.Denom = e2 }
+  return n
+
+}
+func (n *PowE) ConvertToConstantFs( cs []float64 ) Expr     {
+  e1,e2 := n.Base.ConvertToConstantFs(cs), n.Power.ConvertToConstantFs(cs)
+  if n.Base != e1 { n.Base = e1 }
+  if n.Power != e2 { n.Power = e2 }
+  return n
+}
+
+
+
+
+func (n *Null) ConvertToConstants( cs []float64 ) ( []float64, Expr )     { return cs,n }
+func (n *Time) ConvertToConstants( cs []float64 ) ( []float64, Expr )     { return cs,n }
+func (v *Var) ConvertToConstants( cs []float64 ) ( []float64, Expr )      { return cs,v }
+func (c *Constant) ConvertToConstants( cs []float64 ) ( []float64, Expr ) {
+  c.P = len(cs)
+  return append(cs,float64(c.P)),c
+}
+func (c *ConstantF) ConvertToConstants( cs []float64 ) ( []float64, Expr ) {
+  C := &Constant{P:len(cs)}
+  return append(cs,c.F),C
+}
+func (s *System) ConvertToConstants( cs []float64 ) ( []float64, Expr )   { return cs,s }
+
+func (u *Neg) ConvertToConstants( cs []float64 ) ( []float64, Expr )     {
+  css,e := u.C.ConvertToConstants(cs)
+  if u.C != e { u.C = e }
+  return css,u
+}
+func (u *Abs) ConvertToConstants( cs []float64 ) ( []float64, Expr )     {
+  css,e := u.C.ConvertToConstants(cs)
+  if u.C != e { u.C = e }
+  return css,u
+}
+func (u *Sqrt) ConvertToConstants( cs []float64 ) ( []float64, Expr )    {
+  css,e := u.C.ConvertToConstants(cs)
+  if u.C != e { u.C = e }
+  return css,u
+}
+func (u *Sin) ConvertToConstants( cs []float64 ) ( []float64, Expr )     {
+  css,e := u.C.ConvertToConstants(cs)
+  if u.C != e { u.C = e }
+  return css,u
+}
+func (u *Cos) ConvertToConstants( cs []float64 ) ( []float64, Expr )     {
+  css,e := u.C.ConvertToConstants(cs)
+  if u.C != e { u.C = e }
+  return css,u
+}
+func (u *Exp) ConvertToConstants( cs []float64 ) ( []float64, Expr )     {
+  css,e := u.C.ConvertToConstants(cs)
+  if u.C != e { u.C = e }
+  return css,u
+}
+func (u *Log) ConvertToConstants( cs []float64 ) ( []float64, Expr )     {
+  css,e := u.C.ConvertToConstants(cs)
+  if u.C != e { u.C = e }
+  return css,u
+}
+func (u *PowI) ConvertToConstants( cs []float64 ) ( []float64, Expr )    {
+  css,e := u.Base.ConvertToConstants(cs)
+  if u.Base != e { u.Base = e }
+  return css,u
+}
+func (u *PowF) ConvertToConstants( cs []float64 ) ( []float64, Expr )    {
+  css,e := u.Base.ConvertToConstants(cs)
+  if u.Base != e { u.Base = e }
+  return css,u
+}
+
+func (n *Add) ConvertToConstants( cs []float64 ) ( []float64, Expr )      {
+  for i,_ := range n.CS {
+    if n.CS[i] != nil {
+      var e Expr
+      cs,e = n.CS[i].ConvertToConstants(cs)
+      if n.CS[i] != e { n.CS[i] = e }
+    }
+  }
+  return cs,n
+}
+
+func (n *Sub) ConvertToConstants( cs []float64 ) ( []float64, Expr )      {
+  var e Expr
+  cs,e = n.C1.ConvertToConstants(cs)
+  if n.C1 != e { n.C1 = e }
+  cs,e = n.C2.ConvertToConstants(cs)
+  if n.C2 != e { n.C2 = e }
+  return cs,n
+}
+
+func (n *Mul) ConvertToConstants( cs []float64 ) ( []float64, Expr )      {
+  for i,_ := range n.CS {
+    if n.CS[i] != nil {
+      var e Expr
+      cs,e = n.CS[i].ConvertToConstants(cs)
+      if n.CS[i] != e { n.CS[i] = e }
+    }
+  }
+  return cs,n
+}
+
+func (n *Div) ConvertToConstants( cs []float64 ) ( []float64, Expr )      {
+  var e Expr
+  cs,e = n.Numer.ConvertToConstants(cs)
+  if n.Numer != e { n.Numer = e }
+  cs,e = n.Denom.ConvertToConstants(cs)
+  if n.Denom != e { n.Denom = e }
+  return cs,n
+}
+func (n *PowE) ConvertToConstants( cs []float64 ) ( []float64, Expr )     {
+  var e Expr
+  cs,e = n.Base.ConvertToConstants(cs)
+  if n.Base != e { n.Base = e }
+  cs,e = n.Power.ConvertToConstants(cs)
+  if n.Power != e { n.Power = e }
+  return cs,n
+}
+
 
 
 
@@ -535,23 +969,23 @@ func (u *PowI) Clone() Expr 	  { return &PowI{Base: u.Base.Clone(), Power: u.Pow
 func (u *PowF) Clone() Expr 	  { return &PowF{Base: u.Base.Clone(), Power: u.Power} }
 
 func (n *Add) Clone() Expr      {
-  var a Add
-  for i,C := range n.CS {
+  a := NewAdd()
+  for _,C := range n.CS {
     if C != nil {
-      a.CS[i] = C.Clone()
+      a.Insert(C.Clone())
     }
   }
-  return &a
+  return a
 }
 func (n *Sub) Clone() Expr      { return &Sub{C1: n.C1.Clone(), C2: n.C2.Clone()} }
 func (n *Mul) Clone() Expr      {
-  var m Mul
-  for i,C := range n.CS {
+  m := NewMul()
+  for _,C := range n.CS {
     if C != nil {
-      m.CS[i] = C.Clone()
+      m.Insert(C.Clone())
     }
   }
-  return &m
+  return m
 }
 func (n *Div) Clone() Expr      { return &Div{Numer: n.Numer.Clone(), Denom: n.Denom.Clone()} }
 func (n *PowE) Clone() Expr     { return &PowE{Base: n.Base.Clone(), Power: n.Power.Clone()} }
@@ -908,6 +1342,89 @@ func (n *Mul) String() string      {
 }
 func (n *Div) String() string      { return "{ " + n.Numer.String() + " }//{ " + n.Denom.String() + " }" }
 func (n *PowE) String() string      { return "{" + n.Base.String() + "}^(" + n.Power.String() + ")" }
+
+
+
+func (n *Null) Serial( sofar []int ) []int { return append(sofar,int(NULL)) }
+func (t *Time) Serial( sofar []int ) []int    { return append(sofar,int( TIME )) }
+func (v *Var) Serial( sofar []int ) []int     { return append(sofar,int( v.P )+int( STARTVAR )) }
+func (c *Constant) Serial( sofar []int ) []int{
+  sofar = append(sofar,int( CONSTANT ))
+  return append(sofar,int(c.P))
+}
+func (c *ConstantF) Serial( sofar []int ) []int{ return append(sofar,int( CONSTANTF )) } // hmm floats???
+func (s *System) Serial( sofar []int ) []int  {
+  sofar = append(sofar,int( SYSTEM ))
+  return append(sofar,s.P)
+}
+
+func (u *Neg) Serial( sofar []int ) []int     {
+  sofar = append(sofar,int( NEG ))
+  return u.C.Serial(sofar)
+}
+func (u *Abs) Serial( sofar []int ) []int     {
+  sofar = append(sofar,int( ABS ))
+  return u.C.Serial(sofar)
+}
+func (u *Sqrt) Serial( sofar []int ) []int   {
+  sofar = append(sofar,int( SQRT ))
+  return u.C.Serial(sofar)
+}
+func (u *Sin) Serial( sofar []int ) []int     {
+  sofar = append(sofar,int( SIN ))
+  return u.C.Serial(sofar)
+}
+func (u *Cos) Serial( sofar []int ) []int     {
+  sofar = append(sofar,int( COS ))
+  return u.C.Serial(sofar)
+}
+func (u *Exp) Serial( sofar []int ) []int     {
+  sofar = append(sofar,int( EXP ))
+  return u.C.Serial(sofar)
+}
+func (u *Log) Serial( sofar []int ) []int     {
+  sofar = append(sofar,int( LOG ))
+  return u.C.Serial(sofar)
+}
+func (u *PowI) Serial( sofar []int ) []int   {
+  sofar = append(sofar,int( POWI ))
+  sofar = u.Base.Serial(sofar)
+  return append(sofar,u.Power)
+}
+func (u *PowF) Serial( sofar []int ) []int   {
+  sofar = append(sofar,int( POWF ))
+  return u.Base.Serial(sofar)
+}
+
+func (n *Add) Serial( sofar []int ) []int     {
+  sofar = append(sofar,int( ADD ))
+  sofar = append(sofar,len(n.CS))
+  for _,E := range n.CS {
+    sofar = E.Serial(sofar)
+  }
+  return sofar
+}
+func (n *Sub) Serial( sofar []int ) []int     { return append(sofar,int( SUB )) }
+func (n *Mul) Serial( sofar []int ) []int     {
+  sofar = append(sofar,int( MUL ))
+  sofar = append(sofar,len(n.CS))
+  for _,E := range n.CS {
+    sofar = E.Serial(sofar)
+  }
+  return sofar
+}
+func (n *Div) Serial( sofar []int ) []int     {
+  sofar = append(sofar,int( DIV ))
+  sofar = n.Numer.Serial(sofar)
+  return n.Denom.Serial(sofar)
+}
+func (n *PowE) Serial( sofar []int ) []int    {
+  sofar = append(sofar,int( POWE ))
+  sofar = n.Base.Serial(sofar)
+  return n.Power.Serial(sofar)
+}
+
+
 
 
 
@@ -1560,14 +2077,14 @@ func (n *Mul) Simplify( rules SimpRules ) Expr      {
       if n.CS[i].ExprType() == NULL { n.CS[i] = nil }
     }
   }
-  groupCoeff( n.CS[:], plus )
+  groupCoeff( n.CS[:], mult )
   groupMulTerms(n.CS[:])
   sort.Sort( n )
 
   gatherMuls(n)
   sort.Sort( n )
 
-  groupCoeff( n.CS[:], plus )
+  groupCoeff( n.CS[:], mult )
   groupMulTerms(n.CS[:])
 
   sort.Sort( n )
@@ -1638,25 +2155,27 @@ func groupCoeff( terms []Expr, fold(func (lhs,rhs float64) float64) ) {
 
 
 func gatherAdds( n* Add ) {
-  terms := n.CS[:]
-  nops := countTerms(terms)
-  for i,e := range terms {
+  terms := make([]Expr,0)
+  for i,e := range n.CS {
     if e == nil { continue }
     if e.ExprType() == ADD {
       a := e.(*Add)
-      cnt := leftAlignTerms(a.CS[:])
-      for j:=0; j < cnt && nops < MaxAddChildren; j++ {
-        terms[nops] = a.CS[j]
+      leftAlignTerms(a.CS[:])
+      for j,E := range a.CS {
+        if E == nil { continue }
+        terms = append(terms,E)
         a.CS[j] = nil
-        nops++
       }
       rem := leftAlignTerms(a.CS[:])
       if rem == 0 {
         n.CS[i] = nil
       }
       leftAlignTerms(terms)
+    } else {
+      terms = append(terms,e)
     }
   }
+  n.CS = terms
 }
 
 func groupAddTerms( terms []Expr ) {
@@ -1773,24 +2292,401 @@ func groupMulTerms( terms []Expr ) {
 }
 
 func gatherMuls( n* Mul ) {
-  terms := n.CS[:]
-  nops := countTerms(terms)
-  for i,e := range terms {
+  terms := make([]Expr,0)
+  for i,e := range n.CS {
     if e == nil { continue }
     if e.ExprType() == MUL {
       a := e.(*Mul)
-      cnt := leftAlignTerms(a.CS[:])
-      for j:=0; j < cnt && nops < MaxMulChildren; j++ {
-        terms[nops] = a.CS[j]
+      leftAlignTerms(a.CS[:])
+      for j,E := range a.CS {
+        if E == nil { continue }
+        terms = append(terms,E)
         a.CS[j] = nil
-        nops++
       }
       rem := leftAlignTerms(a.CS[:])
       if rem == 0 {
         n.CS[i] = nil
       }
       leftAlignTerms(terms)
+    } else {
+      terms = append(terms,e)
     }
   }
+  n.CS = terms
 }
+
+
+
+
+
+
+func (n *Null) DerivVar( i int) Expr     { return &ConstantF{F: 0} }
+func (n *Time) DerivVar( i int) Expr     { return &ConstantF{F: 0} }
+func (v *Var) DerivVar( i int) Expr      {
+  if v.P == i {
+    return &ConstantF{F: 1.0}
+  }
+  return &ConstantF{F: 0.0}
+}
+func (c *Constant) DerivVar( i int) Expr { return &ConstantF{F: 0} }
+func (c *ConstantF) DerivVar( i int) Expr { return &ConstantF{F: 0} }
+func (s *System) DerivVar( i int) Expr   { return &ConstantF{F: 0} }
+
+func (u *Neg) DerivVar( i int) Expr    { return &Neg{C: u.C.DerivVar(i)} }
+func (u *Abs) DerivVar( i int) Expr    { return &Abs{C: u.C.DerivVar(i)} }
+func (u *Sqrt) DerivVar( i int) Expr     { return (&PowF{Base: u.C.Clone(), Power: .5}).DerivVar(i) }
+func (u *Sin) DerivVar( i int) Expr    {
+  if u.C.HasVarI(i) {
+    c := &Cos{C: u.C.Clone()}
+    g := u.C.DerivVar(i)
+    m := NewMul()
+    m.Insert(g)
+    m.Insert(c)
+    return m
+  }
+  return &ConstantF{F: 0.0}
+}
+func (u *Cos) DerivVar( i int) Expr    {
+  if u.C.HasVarI(i) {
+    s := &Sin{C: u.C.Clone()}
+    n := &Neg{C: s}
+    g := u.C.DerivVar(i)
+    m := NewMul()
+    m.Insert(g)
+    m.Insert(n)
+    return m
+  }
+  return &ConstantF{F: 0.0}
+}
+func (u *Exp) DerivVar( i int) Expr    {
+  if u.C.HasVarI(i) {
+    e := u.Clone()
+    g := u.C.DerivVar(i)
+    m := NewMul()
+    m.Insert(g)
+    m.Insert(e)
+    return m
+  }
+  return &ConstantF{F: 0.0}
+}
+func (u *Log) DerivVar( i int) Expr    {
+  if u.C.HasVarI(i) {
+    var d Div
+    d.Numer = u.C.DerivVar(i)
+    d.Denom = u.C.Clone()
+    return &d
+  }
+  return &ConstantF{F: 0.0}
+}
+func (u *PowI) DerivVar( i int) Expr     {
+  if u.Base.HasVarI(i) {
+    p := u.Clone().(*PowI)
+    c := &ConstantF{F: float64(u.Power)}
+    p.Power -= 1
+    g := u.Base.DerivVar(i)
+    m := NewMul()
+    m.Insert(c)
+    m.Insert(g)
+    m.Insert(p)
+    return m
+  }
+  return &ConstantF{F: 0.0}
+}
+func (u *PowF) DerivVar( i int) Expr     {
+  if u.Base.HasVarI(i) {
+    p := u.Clone().(*PowF)
+    c := &ConstantF{F: u.Power}
+    p.Power -= 1.0
+    g := u.Base.DerivVar(i)
+    m := NewMul()
+    m.Insert(c)
+    m.Insert(g)
+    m.Insert(p)
+    return m
+  }
+  return &ConstantF{F: 0.0}
+}
+
+func (n *Add) DerivVar( i int) Expr      {
+  if n.HasVarI(i) {
+    a := NewAdd()
+    for _,C := range n.CS {
+      if C == nil { continue }
+      if C.HasVarI(i) {
+        a.Insert( C.DerivVar(i) )
+      }
+    }
+    if len(a.CS) > 0 {
+      return a
+    }
+  }
+  return &ConstantF{F: 0.0}
+}
+func (n *Sub) DerivVar( i int) Expr      { return &Sub{C1: n.C1.DerivVar(i), C2: n.C2.DerivVar(i)} }
+func (n *Mul) DerivVar( i int) Expr      {
+  if n.HasVarI(i) {
+    a := NewAdd()
+    for j,J := range n.CS {
+      if J == nil { continue }
+      if J.HasVarI(i) {
+        m := NewMul()
+        for I,C := range n.CS {
+          if C == nil { continue }
+//           fmt.Printf( "%d,%d  %v\n", j,I, C)
+          if j==I {
+            m.Insert( C.DerivVar(i) )
+          } else {
+            m.Insert( C.Clone() )
+          }
+        }
+        a.Insert(m)
+      }
+
+    }
+    if len(a.CS) > 0 {
+      return a
+    }
+  }
+  return &ConstantF{F: 0.0}
+}
+func (n *Div) DerivVar( i int) Expr      {
+  if n.HasVarI(i) {
+    d := new(Div)
+
+    a := NewAdd()
+    m1 := NewMul()
+    m1.Insert(n.Numer.DerivVar(i))
+    m1.Insert(n.Denom.Clone())
+    m2 := NewMul()
+    m2.Insert(&ConstantF{F:-1.0})
+    m2.Insert(n.Numer.Clone())
+    m2.Insert(n.Denom.DerivVar(i))
+    a.Insert(m1)
+    a.Insert(m2)
+    d.Numer = a
+
+    p2 := new(PowI)
+    p2.Base = n.Denom.Clone()
+    p2.Power = 2
+    d.Denom = p2
+    return d
+  }
+  return &ConstantF{F: 0.0}
+}
+func (n *PowE) DerivVar( i int) Expr     {
+  if n.HasVarI(i) {
+    a := NewAdd()
+
+    m1 := NewMul()
+    m1.Insert(n.Base.DerivVar(i))
+    m1.Insert(n.Power.Clone())
+    p1 := new(PowE)
+    p1.Base = n.Base.Clone()
+    a1 := NewAdd()
+    a1.Insert(n.Power.Clone())
+    a1.Insert(&ConstantF{F: -1})
+
+    m2 := NewMul()
+    m2.Insert(n.Power.DerivVar(i))
+    m2.Insert(n.Clone())
+    m2.Insert(&Log{C: n.Base.Clone()})
+
+    a.Insert(m1)
+    a.Insert(m2)
+
+
+  }
+  return &ConstantF{F: 0.0}
+}
+
+
+
+
+
+
+func (n *Null) DerivConst( i int) Expr     { return &ConstantF{F: 0} }
+func (n *Time) DerivConst( i int) Expr     { return &ConstantF{F: 0} }
+func (v *Var) DerivConst( i int) Expr      { return &ConstantF{F: 0} }
+func (c *Constant) DerivConst( i int) Expr {
+  if c.P == i {
+    return &ConstantF{F: 1.0}
+  }
+  return &ConstantF{F: 0.0}
+}
+
+func (c *ConstantF) DerivConst( i int) Expr { return &ConstantF{F: 0} }
+func (s *System) DerivConst( i int) Expr   { return &ConstantF{F: 0} }
+
+func (u *Neg) DerivConst( i int) Expr    { return &Neg{C: u.C.DerivConst(i)} }
+func (u *Abs) DerivConst( i int) Expr    { return &Abs{C: u.C.DerivConst(i)} }
+func (u *Sqrt) DerivConst( i int) Expr     { return (&PowF{Base: u.C.Clone(), Power: .5}).DerivConst(i) }
+func (u *Sin) DerivConst( i int) Expr    {
+  if u.C.HasConstI(i) {
+    c := &Cos{C: u.C.Clone()}
+    g := u.C.DerivConst(i)
+    m := NewMul()
+    m.Insert(g)
+    m.Insert(c)
+    return m
+  }
+  return &ConstantF{F: 0.0}
+}
+func (u *Cos) DerivConst( i int) Expr    {
+  if u.C.HasConstI(i) {
+    s := &Sin{C: u.C.Clone()}
+    n := &Neg{C: s}
+    g := u.C.DerivConst(i)
+    m := NewMul()
+    m.Insert(g)
+    m.Insert(n)
+    return m
+  }
+  return &ConstantF{F: 0.0}
+}
+func (u *Exp) DerivConst( i int) Expr    {
+  if u.C.HasConstI(i) {
+    e := u.Clone()
+    g := u.C.DerivConst(i)
+    m := NewMul()
+    m.Insert(g)
+    m.Insert(e)
+    return m
+  }
+  return &ConstantF{F: 0.0}
+}
+func (u *Log) DerivConst( i int) Expr    {
+  if u.C.HasConstI(i) {
+    var d Div
+    d.Numer = u.C.DerivConst(i)
+    d.Denom = u.C.Clone()
+    return &d
+  }
+  return &ConstantF{F: 0.0}
+}
+func (u *PowI) DerivConst( i int) Expr     {
+  if u.Base.HasConstI(i) {
+    p := u.Clone().(*PowI)
+    c := &ConstantF{F: float64(u.Power)}
+    p.Power -= 1
+    g := u.Base.DerivConst(i)
+    m := NewMul()
+    m.Insert(c)
+    m.Insert(g)
+    m.Insert(p)
+    return m
+  }
+  return &ConstantF{F: 0.0}
+}
+func (u *PowF) DerivConst( i int) Expr     {
+  if u.Base.HasVarI(i) {
+    p := u.Clone().(*PowF)
+    c := &ConstantF{F: u.Power}
+    p.Power -= 1.0
+    g := u.Base.DerivConst(i)
+    m := NewMul()
+    m.Insert(c)
+    m.Insert(g)
+    m.Insert(p)
+    return m
+  }
+  return &ConstantF{F: 0.0}
+}
+
+func (n *Add) DerivConst( i int) Expr      {
+  if n.HasConstI(i) {
+    a := NewAdd()
+    for _,C := range n.CS {
+      if C.HasConstI(i) {
+        a.Insert( C.DerivConst(i) )
+      }
+    }
+    if len(a.CS) > 0 {
+      return a
+    }
+  }
+  return &ConstantF{F: 0.0}
+}
+func (n *Sub) DerivConst( i int) Expr      { return &Sub{C1: n.C1.DerivConst(i), C2: n.C2.DerivConst(i)} }
+func (n *Mul) DerivConst( i int) Expr      {
+  if n.HasConstI(i) {
+    a := NewAdd()
+    for j,J := range n.CS {
+
+      if J.HasConstI(i) {
+        m := NewMul()
+        for I,C := range n.CS {
+          if j==I {
+            m.Insert( C.DerivConst(i) )
+          } else {
+            m.Insert( C.Clone() )
+          }
+        }
+        a.Insert(m)
+      }
+
+    }
+    if len(a.CS) > 0 {
+      return a
+    }
+  }
+  return &ConstantF{F: 0.0}
+}
+func (n *Div) DerivConst( i int) Expr      {
+  if n.HasConstI(i) {
+    d := new(Div)
+
+    a := NewAdd()
+    m1 := NewMul()
+    m1.Insert(n.Denom.Clone())
+    m1.Insert(n.Numer.DerivConst(i))
+    a.Insert(m1)
+
+    m2 := NewMul()
+    m2.Insert(n.Numer.Clone())
+    m2.Insert(n.Denom.DerivConst(i))
+    n2 := &Neg{C: m2}
+    a.Insert(n2)
+
+    d.Numer = a
+
+    p2 := new(PowI)
+    p2.Base = n.Denom.Clone()
+    p2.Power = 2
+    d.Denom = p2
+    return d
+  }
+  return &ConstantF{F: 0.0}
+}
+func (n *PowE) DerivConst( i int) Expr     {
+  if n.HasConstI(i) {
+    a := NewAdd()
+
+    m1 := NewMul()
+    m1.Insert(n.Base.DerivConst(i))
+    m1.Insert(n.Power.Clone())
+    p1 := new(PowE)
+    p1.Base = n.Base.Clone()
+    a1 := NewAdd()
+    a1.Insert(n.Power.Clone())
+    a1.Insert(&ConstantF{F: -1})
+
+    m2 := NewMul()
+    m2.Insert(n.Power.DerivConst(i))
+    m2.Insert(n.Clone())
+    m2.Insert(&Log{C: n.Base.Clone()})
+
+    a.Insert(m1)
+    a.Insert(m2)
+
+
+  }
+  return &ConstantF{F: 0.0}
+}
+
+
+
+
+
+
+
 
