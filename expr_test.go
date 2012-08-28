@@ -1,29 +1,78 @@
 package symexpr
 
 import (
+  "testing"
+  
   "fmt"
 )
 
 
-func TestPrint() {
-
-  c := &ConstantF{F: 1.57}
-  s := &Sin{C:c}
-  fmt.Printf( "Hello Me!   %v\n", s )
+func Test_Print(t *testing.T) {
+  fmt.Printf( "Testing: Print                " )
+  
+  c := NewConstantF(1.57)
+  s := NewSin(c)
+  t.Logf( "Hello Me!   %v\n", s )
 
   c.F = 90.0
-  fmt.Printf( "Hello Me!   %v\n", c )
-
-}
-
-func TestSimp() {
-  sRules := SimpRules{true,true}
-
-  testAddSimp(sRules)
-
+  t.Logf( "Hello Me!   %v\n", c )
+  
+  fmt.Printf( "Passed\n" )
 }
 
 
+
+// func TEST() {
+//   A1 := SE.NewAdd()
+//   A2 := SE.NewAdd()
+//
+//   M1 := SE.NewMul()
+//   M2 := SE.NewMul()
+//   M3 := SE.NewMul()
+//
+//   c1 := new(SE.Constant)
+//   c1.P = 0
+//   c2 := new(SE.Constant)
+//   c2.P = 1
+//   c3 := new(SE.Constant)
+//   c3.P = 1
+//
+//   x1 := new(SE.Var)
+//   x1.P = 0
+//   x2 := new(SE.Var)
+//   x2.P = 0
+//
+//   M1.Insert(c1)
+//   M1.Insert(x1)
+//   M2.Insert(c2)
+//   M2.Insert(x2)
+//   M3.Insert(c3)
+//   M3.Insert(x1)
+//
+//   A1.Insert(M1)
+//   A1.Insert(M2)
+//
+//   A2.Insert(M2)
+//   A2.Insert(M3)
+//
+//
+//   m12 := M1.AmIAlmostSame(M2)
+//   m13 := M1.AmIAlmostSame(M3)
+//   m23 := M2.AmIAlmostSame(M3)
+//
+//   fmt.Printf( "m12: %v\n", m12 )
+//   fmt.Printf( "m12: %v\n", m13 )
+//   fmt.Printf( "m12: %v\n", m23 )
+//   fmt.Printf( "\n" )
+//
+//   fmt.Printf( "A1:  %v\n", A1 )
+//   fmt.Printf( "A2:  %v\n", A2 )
+//   A1.Sort()
+//   A2.Sort()
+//   fmt.Printf( "A1:  %v\n", A1 )
+//   fmt.Printf( "A2:  %v\n", A2 )
+// }
+/*
 
 func TestAmIAlmostSame() {
 	var add1,add2,add3,add4 Add
@@ -91,6 +140,6 @@ func testAddSimp(srules SimpRules) {
 
 
 
-}
+//}*/
 
 
