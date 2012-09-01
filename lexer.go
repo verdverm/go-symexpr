@@ -7,16 +7,13 @@ import (
 	"unicode/utf8"
 )
 
-
-
 func (l *lexer) run() {
 	for state := lexExpr; state != nil; {
 		state = state(l)
 	}
-	l.items <- item{itemEOF,"eof"}
+	l.items <- item{itemEOF, "eof"}
 	close(l.items) // No more tokens will be delivered.
 }
-
 
 type item struct {
 	typ itemType
@@ -33,7 +30,7 @@ func (i item) String() string {
 	if len(i.val) > 10 {
 		return fmt.Sprintf("%.10q...", i.val)
 	}
-	return fmt.Sprintf("%q", i.val)
+	return fmt.Sprintf("%d-'%s'", i.typ, i.val)
 }
 
 type itemType int
@@ -43,78 +40,85 @@ const (
 	itemError
 	itemEOF // EOF
 
-	itemAdd      // +
-	itemMul      // *
-	itemDiv      // //
-	itemNeg      // -
-	itemLParen   // (
-	itemRParen   // )
-	itemLBrack   // {
-	itemRBrack   // }
-	itemCarrot   // ^
+	itemAdd    // +
+	itemMul    // *
+	itemDiv    // /
+	itemDiv2   // {...}//{...}
+	itemNeg    // -
+	itemLParen // (
+	itemRParen // )
+	itemLBrack // {
+	itemRBrack // }
+	itemCarrot // ^
 
 	itemNumber
 	itemIndex
 	itemIdentifier // vars,coeffs,funcs
 
 	itemKeyword // placeholder 
-	itemFrac      // \frac
-	itemCDot     // \cdot  (latex multiplication)
+	itemFrac    // \frac
+	itemCDot    // \cdot  (latex multiplication)
 	itemSin
 	itemCos
+	itemAbs
+	itemSqrt
+	itemExp
+	itemLog
 )
 
-
-
-func isLeaf( it itemType) bool {
+func isLeaf(it itemType) bool {
 	switch it {
-	case itemNumber,itemIdentifier:
+	case itemNumber, itemIdentifier:
 		return true
 	}
 	return false
 }
-func isUnary( it itemType) bool {
+func isUnary(it itemType) bool {
 	// switch it {
 	// case itemNeg:
 	// 	return true
 	// }
 	return false
 }
-func isBinary( it itemType ) bool {
+func isBinary(it itemType) bool {
 	switch it {
-	case itemAdd,itemNeg, itemMul,itemDiv, itemCarrot:
+	case itemAdd, itemNeg, itemMul, itemDiv, itemDiv2, itemCarrot:
 		return true
 	}
 	return false
 }
 
-
 var itemName = map[itemType]string{
-	itemNil:		  "nil",
-	itemError:        "error",
-	itemEOF:          "EOF",
+	itemNil:   "nil",
+	itemError: "error",
+	itemEOF:   "EOF",
 
-	itemAdd:		  "add",
-	itemMul:		  "mul",
-	itemDiv:		  "div",
-	itemNeg:		  "neg",
-	itemLParen:		  "lParen",
-	itemRParen:		  "rParen",
-	itemLBrack:		  "lBrack",
-	itemRBrack:		  "rBrack",
-	itemCarrot:		  "carrot",
+	itemAdd:    "add",
+	itemMul:    "mul",
+	itemDiv:    "div",
+	itemDiv2:   "div2",
+	itemNeg:    "neg",
+	itemLParen: "lParen",
+	itemRParen: "rParen",
+	itemLBrack: "lBrack",
+	itemRBrack: "rBrack",
+	itemCarrot: "carrot",
 
-	itemNumber:		  "number",
-	itemIndex:		  "index",
-	itemIdentifier:   "identifier",
+	itemNumber:     "number",
+	itemIndex:      "index",
+	itemIdentifier: "identifier",
 
 	// keywords
-	itemCDot:         "cdot",
-	itemFrac:	   	  "frac",
-	itemSin:		  "sin",
-	itemCos:		  "cos",
-	
+	itemCDot: "cdot",
+	itemFrac: "frac",
+	itemSin:  "sin",
+	itemCos:  "cos",
+	itemAbs:  "abs",
+	itemSqrt: "sqrt",
+	itemExp:  "exp",
+	itemLog:  "ln",
 }
+
 func (i itemType) String() string {
 	s := itemName[i]
 	if s == "" {
@@ -124,10 +128,20 @@ func (i itemType) String() string {
 }
 
 var key = map[string]itemType{
-	"\\cdot":   itemCDot,
-	"\\frac":   itemFrac,
-	"sin":		itemSin,
-	"cos":		itemCos,
+	"\\cdot": itemCDot,
+	"\\frac": itemFrac,
+	"sin":    itemSin,
+	"Sin":    itemSin,
+	"cos":    itemCos,
+	"Cos":    itemCos,
+	"abs":    itemAbs,
+	"Abs":    itemAbs,
+	"sqrt":   itemSqrt,
+	"Sqrt":   itemSqrt,
+	"e":      itemExp,
+	"exp":    itemExp,
+	"Exp":    itemExp,
+	"ln":     itemLog,
 }
 
 const eof = -1
@@ -137,15 +151,15 @@ type stateFn func(*lexer) stateFn
 
 // lexer holds the state of the scanner.
 type lexer struct {
-	name  string    // used only for error reports.
-	input string    // the string being scanned.
-	vars  []string  // allowable variables
-	state stateFn   // the next lexing function to enter.
-	start int       // start position of this item.
-	pos   int       // current position in the input.
-	width int       // width of last rune read from input.
-	items chan item // channel of scanned items.
-	nextToken  item
+	name      string    // used only for error reports.
+	input     string    // the string being scanned.
+	vars      []string  // allowable variables
+	state     stateFn   // the next lexing function to enter.
+	start     int       // start position of this item.
+	pos       int       // current position in the input.
+	width     int       // width of last rune read from input.
+	items     chan item // channel of scanned items.
+	nextToken item
 }
 
 // next returns the next rune in the input.
@@ -227,17 +241,16 @@ func (l *lexer) nextItem() item {
 // lex creates a new scanner for the input string.
 func lex(name, input string, vars []string) *lexer {
 	l := &lexer{
-		name:       name,
-		input:      input,
-		vars:		vars,
-		state:      lexExpr,
-		items:      make(chan item, 2), // Two items of buffering is sufficient for all state functions
+		name:  name,
+		input: input,
+		vars:  vars,
+		state: lexExpr,
+		items: make(chan item, 2), // Two items of buffering is sufficient for all state functions
 	}
 	return l
 }
 
 /*****  State Functions  *****/
-
 
 // lexExpr is the top level scanner
 func lexExpr(l *lexer) stateFn {
@@ -255,8 +268,12 @@ func lexExpr(l *lexer) stateFn {
 	case r == '^':
 		l.emit(itemCarrot)
 		return lexExpr
-	case r == '/' && l.peek() == '/':
-		l.emit(itemDiv)
+	case r == '/':
+		if l.peek() == '/' {
+			l.emit(itemDiv2)
+		} else {
+			l.emit(itemDiv)
+		}
 		return lexExpr
 	case r == '-':
 		l.emit(itemNeg)
@@ -290,8 +307,6 @@ func lexExpr(l *lexer) stateFn {
 	}
 	return lexExpr
 }
-
-
 
 // lexIdentifier scans an alphanumeric or field.
 func lexIdentifier(l *lexer) stateFn {
@@ -398,8 +413,6 @@ func (l *lexer) scanNumber() bool {
 	// }
 	return true
 }
-
-
 
 // isSpace reports whether r is a space character.
 func isSpace(r rune) bool {
