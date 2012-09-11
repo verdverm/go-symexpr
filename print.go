@@ -117,6 +117,20 @@ func (u *Cos) PrettyPrint(dnames, snames []string, cvals []float64) string {
 	return "cos(" + u.C.PrettyPrint(dnames, snames, cvals) + ")"
 }
 
+func (u *Tan) String() string {
+	if u.C == nil {
+		return "tan(nil)"
+	}
+	return "tan(" + u.C.String() + ")"
+}
+func (u *Tan) Serial(sofar []int) []int {
+	sofar = append(sofar, int(COS))
+	return u.C.Serial(sofar)
+}
+func (u *Tan) PrettyPrint(dnames, snames []string, cvals []float64) string {
+	return "tan(" + u.C.PrettyPrint(dnames, snames, cvals) + ")"
+}
+
 func (u *Exp) String() string {
 	if u.C == nil {
 		return "exp(nil)"

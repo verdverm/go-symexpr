@@ -44,6 +44,14 @@ func (u *Cos) DerivVar( i int) Expr    {
   }
   return NewConstantF(0.0)
 }
+func (u *Tan) DerivVar( i int) Expr    {
+  if u.C.HasVarI(i) {
+    n := u.C.DerivVar(i)
+    d := NewPowI(NewCos(u.C.Clone()),2)
+    return NewDiv(n,d)
+  }
+  return NewConstantF(0.0)
+}
 func (u *Exp) DerivVar( i int) Expr    {
   if u.C.HasVarI(i) {
     e := u.Clone()

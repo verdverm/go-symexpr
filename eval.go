@@ -39,6 +39,10 @@ func (u *Cos) Eval(t float64, x, c, s []float64) float64 {
   return math.Cos( u.C.Eval(t, x, c, s) )
 }
 
+func (u *Tan) Eval(t float64, x, c, s []float64) float64 {
+  return math.Tan( u.C.Eval(t, x, c, s) )
+}
+
 func (u *Exp) Eval(t float64, x, c, s []float64) float64 {
   return math.Exp( u.C.Eval(t, x, c, s) )
 }

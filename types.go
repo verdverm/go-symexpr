@@ -189,6 +189,22 @@ func (u *Cos) Clone() Expr    {
 }
 
 
+type Tan struct {
+  Unary
+}
+func NewTan( e Expr ) *Tan {
+  n := new(Tan)
+  n.C = e
+  return n
+}
+func (u *Tan) ExprType() exprType  { return TAN }
+func (u *Tan) Clone() Expr    {
+  var C Expr
+  if u.C != nil { C = u.C.Clone() }
+  return NewTan(C)
+}
+
+
 type Exp struct {
   Unary
 }

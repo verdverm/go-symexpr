@@ -190,6 +190,29 @@ func (u *Cos) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 	return false, repd
 }
 
+func (u *Tan) GetExpr(pos *int) Expr {
+	if (*pos) == 0 {
+		return u
+	}
+	(*pos)--
+	return u.C.GetExpr(pos)
+}
+func (u *Tan) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
+	if (*pos) == 0 {
+		return true, false
+	}
+	(*pos)--
+	rme, repd := u.C.SetExpr(pos, e)
+	if repd {
+		return false, true
+	}
+	if rme {
+		u.C = e
+		return false, true
+	}
+	return false, repd
+}
+
 func (u *Exp) GetExpr(pos *int) Expr {
 	if (*pos) == 0 {
 		return u

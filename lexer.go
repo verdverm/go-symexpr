@@ -60,6 +60,7 @@ const (
 	itemCDot    // \cdot  (latex multiplication)
 	itemSin
 	itemCos
+	itemTan
 	itemAbs
 	itemSqrt
 	itemExp
@@ -113,6 +114,7 @@ var itemName = map[itemType]string{
 	itemFrac: "frac",
 	itemSin:  "sin",
 	itemCos:  "cos",
+	itemTan:  "tan",
 	itemAbs:  "abs",
 	itemSqrt: "sqrt",
 	itemExp:  "exp",
@@ -134,6 +136,8 @@ var key = map[string]itemType{
 	"Sin":    itemSin,
 	"cos":    itemCos,
 	"Cos":    itemCos,
+	"tan":    itemTan,
+	"Tan":    itemTan,
 	"abs":    itemAbs,
 	"Abs":    itemAbs,
 	"sqrt":   itemSqrt,

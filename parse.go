@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"math"
 )
 
 var itemPrec = map[itemType]int{
@@ -78,8 +79,14 @@ func parseExpr(prefix string, L *lexer, p int) Expr {
 				div := NewDiv(e, e2)
 				e = div
 			case itemCarrot:
-				pow := NewPowE(e, e2)
-				e = pow
+				switch e2.ExprType() {
+				case CONSTANTF:
+					pow := NewPowF(e, e2.(*ConstantF).F)
+					e = pow				
+				default:
+					pow := NewPowE(e, e2)
+					e = pow				
+				}
 			}
 			// fmt.Printf("%snew e: %v\n", prefix, e)
 		} else if typ == itemIdentifier && itemPrec[itemMul] >= p {
@@ -181,12 +188,16 @@ func parsePiece(prefix string, L *lexer) Expr {
 			}
 			return NewVar(int(index))
 		} else {
-			// is it a named variable
+			// is it a named variable ?
 			for p, v := range L.vars {
 				if next.val == v {
 					e = NewVar(p)
 					break
 				}
+			}
+			// is it a named constant ?
+			if strings.ToLower(next.val) == "pi" {
+				e = NewConstantF(math.Pi)
 			}
 
 			if e == nil {
@@ -210,6 +221,9 @@ func parsePiece(prefix string, L *lexer) Expr {
 		case itemCos:
 			e2 := parseExpr(prefix+"  ", L, itemPrec[itemKeyword])
 			e = NewCos(e2)
+		case itemTan:
+			e2 := parseExpr(prefix+"  ", L, itemPrec[itemKeyword])
+			e = NewTan(e2)
 		case itemAbs:
 			e2 := parseExpr(prefix+"  ", L, itemPrec[itemKeyword])
 			e = NewAbs(e2)

@@ -43,6 +43,13 @@ func (u *Cos) ConvertToConstantFs( cs []float64 ) Expr     {
   }
   return u
 }
+func (u *Tan) ConvertToConstantFs( cs []float64 ) Expr     {
+  e := u.C.ConvertToConstantFs(cs)
+  if u.C != e {
+    u.C = e
+  }
+  return u
+}
 func (u *Exp) ConvertToConstantFs( cs []float64 ) Expr     {
   e := u.C.ConvertToConstantFs(cs)
   if u.C != e {
@@ -148,6 +155,11 @@ func (u *Sin) ConvertToConstants( cs []float64 ) ( []float64, Expr )     {
   return css,u
 }
 func (u *Cos) ConvertToConstants( cs []float64 ) ( []float64, Expr )     {
+  css,e := u.C.ConvertToConstants(cs)
+  if u.C != e { u.C = e }
+  return css,u
+}
+func (u *Tan) ConvertToConstants( cs []float64 ) ( []float64, Expr )     {
   css,e := u.C.ConvertToConstants(cs)
   if u.C != e { u.C = e }
   return css,u

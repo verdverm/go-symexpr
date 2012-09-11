@@ -20,29 +20,31 @@ func Test_Parser(TEST *testing.T) {
 	s, e := 0, len(benchmarks)
 	for i := s; i < e; i++ {
 
-		// switch i {
-		// case 47:
-		// if i < 21 {
 		fmt.Printf("Benchmark: %d\n", i)
 		b := benchmarks[i]
 		fmt.Printf("Input:     %s\n", b.FuncText)
 
 		varNames := make([]string, 0)
 		for _, v := range b.TrainVars {
-			fmt.Printf("  %v\n", v)
+			// fmt.Printf("  %v\n", v)
 			varNames = append(varNames, v.Name)
 		}
 
 		expr := ParseFunc(b.FuncText, varNames)
+		fmt.Printf("Result:    %v\n", expr)
 
-		// fmt.Printf("Input:     %s\n", b.FuncText)
-		fmt.Printf("Result:    %v\n\n\n", expr)
-		// }
+		sort := expr.Clone()
+		rules := DefaultRules()
+		rules.GroupAddTerms = false
+		sort = sort.Simplify(rules)
+		
+		fmt.Printf("Sorted:    %v\n\n\n", sort)
+
 	}
 }
 
 /* latest errors: 
-tan,tanh,pi
+tan,tanh
 
 SUM
 41

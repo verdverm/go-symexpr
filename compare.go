@@ -150,6 +150,22 @@ func (u *Cos) AmIAlmostSame(r Expr) bool {
 }
 func (u *Cos) Sort() { u.C.Sort() }
 
+func (u *Tan) AmILess(r Expr) bool {
+	if TAN < r.ExprType() {
+		return true
+	}
+	if TAN > r.ExprType() {
+		return false
+	}
+	return u.C.AmILess(r.(*Tan).C)
+}
+func (u *Tan) AmIEqual(r Expr) bool { return r.ExprType() == TAN && u.C.AmIEqual(r.(*Tan).C) }
+func (u *Tan) AmISame(r Expr) bool  { return r.ExprType() == TAN && u.C.AmISame(r.(*Tan).C) }
+func (u *Tan) AmIAlmostSame(r Expr) bool {
+	return r.ExprType() == TAN && u.C.AmIAlmostSame(r.(*Tan).C)
+}
+func (u *Tan) Sort() { u.C.Sort() }
+
 func (u *Exp) AmILess(r Expr) bool {
 	if EXP < r.ExprType() {
 		return true

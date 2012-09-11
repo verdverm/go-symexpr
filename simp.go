@@ -7,8 +7,10 @@ import (
 )
 
 type SimpRules struct {
-	MulToPow  bool
-	MaxPowPow int
+	GroupAddTerms bool
+	ConvertConsts bool
+	MulToPow      bool
+	MaxPowPow     int
 
 	MulInCoeff int // add must be >= to size, 0 == No
 
@@ -17,7 +19,7 @@ type SimpRules struct {
 }
 
 func DefaultRules() SimpRules {
-	return SimpRules{true, 12, 0, false}
+	return SimpRules{true,true, true, 12, 0, false}
 }
 
 func (l *Leaf) Simplify(rules SimpRules) Expr  { return nil }
@@ -59,9 +61,19 @@ func (u *Neg) Simplify(rules SimpRules) (ret Expr) {
 	case CONSTANT:
 		ret = u.C
 		u.C = nil
+	case CONSTANTF:
+		c := u.C.(*ConstantF)
+		c.F *= -1.0
+		ret = u.C
+		u.C = nil
 	case MUL:
 		m := u.C.(*Mul)
 		if m.CS[0].ExprType() == CONSTANT { // Constants should always be first operand in Mul
+			ret = u.C
+			u.C = nil
+		} else if m.CS[0].ExprType() == CONSTANTF { // Constants should always be first operand in Mul
+			c := m.CS[0].(*ConstantF)
+			c.F *= -1.0
 			ret = u.C
 			u.C = nil
 		}
@@ -164,7 +176,7 @@ func (u *Sin) Simplify(rules SimpRules) (ret Expr) {
 	}
 	// fmt.Printf("      %v\n", u.C)
 	switch u.C.ExprType() {
-	case NULL, SIN, COS, CONSTANT:
+	case NULL, SIN, COS, TAN, CONSTANT:
 		ret = u.C
 		u.C = nil
 	case CONSTANTF:
@@ -193,13 +205,42 @@ func (u *Cos) Simplify(rules SimpRules) (ret Expr) {
 		return nil
 	}
 	switch u.C.ExprType() {
-	case NULL, SIN, COS, CONSTANT:
+	case NULL, SIN, COS, TAN, CONSTANT:
 		ret = u.C
 		u.C = nil
 	case CONSTANTF:
 		ret = u.C
 		u.C = nil
 		ret.(*ConstantF).F = math.Cos(ret.(*ConstantF).F)
+	default: // no simplification
+		ret = u
+	}
+	return ret
+}
+
+func (u *Tan) Simplify(rules SimpRules) (ret Expr) {
+	if !rules.InTrig {
+		rules.InTrig = true
+	} else {
+		tmp := u.C
+		u.C = nil
+		return tmp
+	}
+	if u.C == nil {
+		return nil
+	}
+	u.C = u.C.Simplify(rules)
+	if u.C == nil {
+		return nil
+	}
+	switch u.C.ExprType() {
+	case NULL, SIN, COS, TAN, CONSTANT:
+		ret = u.C
+		u.C = nil
+	case CONSTANTF:
+		ret = u.C
+		u.C = nil
+		ret.(*ConstantF).F = math.Tan(ret.(*ConstantF).F)
 	default: // no simplification
 		ret = u
 	}
@@ -252,8 +293,8 @@ func (u *Log) Simplify(rules SimpRules) (ret Expr) {
 
 func (u *PowI) Simplify(rules SimpRules) Expr {
 	var (
-		ret Expr = u
-		t   exprType  = NULL
+		ret Expr     = u
+		t   exprType = NULL
 	)
 	if u.Base != nil {
 		// serial := make([]int, 0, 64)
@@ -318,8 +359,8 @@ func (u *PowI) Simplify(rules SimpRules) Expr {
 
 func (u *PowF) Simplify(rules SimpRules) Expr {
 	var (
-		ret Expr = u
-		t   exprType  = NULL
+		ret Expr     = u
+		t   exprType = NULL
 	)
 	if u.Base != nil {
 		u.Base = u.Base.Simplify(rules)
@@ -341,8 +382,8 @@ func (u *PowF) Simplify(rules SimpRules) Expr {
 
 func (n *PowE) Simplify(rules SimpRules) Expr {
 	var (
-		ret    Expr = n
-		t1, t2 exprType  = NULL, NULL
+		ret    Expr     = n
+		t1, t2 exprType = NULL, NULL
 	)
 	if n.Base != nil {
 		n.Base = n.Base.Simplify(rules)
@@ -374,8 +415,8 @@ func (n *PowE) Simplify(rules SimpRules) Expr {
 
 func (n *Div) Simplify(rules SimpRules) Expr {
 	var (
-		ret    Expr = n
-		t1, t2 exprType  = NULL, NULL
+		ret    Expr     = n
+		t1, t2 exprType = NULL, NULL
 	)
 	if n.Numer != nil {
 		n.Numer = n.Numer.Simplify(rules)
@@ -481,6 +522,7 @@ func (n *Div) Simplify(rules SimpRules) Expr {
 func (n *Add) Simplify(rules SimpRules) Expr {
 	var ret Expr = n
 	hasSome := false
+	// fmt.Printf("n.CS = %v\n",n.CS)
 	for i, C := range n.CS {
 		if C != nil {
 			n.CS[i] = C.Simplify(rules)
@@ -501,6 +543,7 @@ func (n *Add) Simplify(rules SimpRules) Expr {
 
 	changed := true
 	for changed {
+		// fmt.Printf("iter = %v\n",n.CS)
 		// fmt.Printf("ADD:  %v\n", n)
 		changed = false
 		changed = changed || gatherAddTerms(n)
@@ -520,6 +563,8 @@ func (n *Add) Simplify(rules SimpRules) Expr {
 		ret = n.CS[0]
 		n.CS[0] = nil
 	}
+	// fmt.Printf("exit = %v\n",n.CS)
+
 	return ret
 }
 
@@ -607,14 +652,16 @@ func leftAlignTerms(terms []Expr) int {
 // pulls recursive adds into the current add
 func gatherAddTerms(n *Add) (changed bool) {
 	terms := make([]Expr, 0)
+	// terms := n.CS
+	// fmt.Printf("n.CS: %v\n", n.CS[:])
 	for i, e := range n.CS {
 		if e == nil {
 			continue
 		}
 		if e.ExprType() == ADD {
+			// fmt.Printf("got here\n")
 			changed = true
 			a := e.(*Add)
-			leftAlignTerms(a.CS[:])
 			for j, E := range a.CS {
 				if E == nil {
 					continue
@@ -622,23 +669,25 @@ func gatherAddTerms(n *Add) (changed bool) {
 				terms = append(terms, E)
 				a.CS[j] = nil
 			}
-			rem := leftAlignTerms(a.CS[:])
-			if rem == 0 {
-				n.CS[i] = nil
-			}
-			leftAlignTerms(terms)
+			// rem := leftAlignTerms(a.CS[:])
+			// if rem == 0 {
+			n.CS[i] = nil
+			// }
+			// leftAlignTerms(terms)
 		} else {
 			terms = append(terms, e)
 		}
 	}
+	// fmt.Printf("terms: %v\n", terms)
 	n.CS = terms
-	return
+	return changed
 }
 
 // pulls recursive muls into the current mul
 func gatherMulTerms(n *Mul) (changed bool) {
 	terms := make([]Expr, 0)
 	hasCoeff := false
+	var coeff *ConstantF = nil
 	hasDiv := -1
 	for i, e := range n.CS {
 		if e == nil {
@@ -655,10 +704,14 @@ func gatherMulTerms(n *Mul) (changed bool) {
 			}
 
 		case CONSTANTF:
-			changed = true
-			if !hasCoeff {
-				hasCoeff = true
-				terms = append(terms, NewConstant(-1))
+			// changed = true
+			if coeff == nil {
+				// hasCoeff = true
+				coeff = e.(*ConstantF)
+				terms = append(terms, e)
+				// terms = append(terms, NewConstant(-1))
+			} else {
+				coeff.F *= e.(*ConstantF).F
 			}
 			n.CS[i] = nil
 
@@ -815,7 +868,8 @@ func groupAddTerms(n *Add) (changed bool) {
 func groupMulTerms(m *Mul) (changed bool) {
 	terms := m.CS
 	L := len(terms)
-	hasCoeff := false
+	hasConst := false
+	var coeff *ConstantF = nil
 
 	for i, x := range terms {
 		if x == nil {
@@ -826,20 +880,34 @@ func groupMulTerms(m *Mul) (changed bool) {
 		powSum := 1.0
 
 		xT := x.ExprType()
-		if xT == CONSTANT && !hasCoeff {
-			hasCoeff = true
+		if xT == CONSTANT && !hasConst {
+			hasConst = true
 		}
 
+		if xT == CONSTANTF {
+			if coeff == nil {
+				coeff = x.(*ConstantF)
+			} else {
+				coeff.F *= x.(*ConstantF).F
+				terms[i] = nil
+				continue
+			}
+		}
+
+		var xC Expr
 		xTb := NULL
 		switch xT {
 		case NEG:
-			xTb = x.(*Neg).C.ExprType()
+			xC = x.(*Neg).C
+			xTb = xC.ExprType()
 		case POWI:
 			p := x.(*PowI)
+			xC = p.Base
 			xTb = p.Base.ExprType()
 			powSum = float64(p.Power)
 		case POWF:
 			p := x.(*PowF)
+			xC = p.Base
 			xTb = p.Base.ExprType()
 			powSum = p.Power
 		}
@@ -853,20 +921,34 @@ func groupMulTerms(m *Mul) (changed bool) {
 			// setting up following term(s)
 			powY := 1.0
 			yT := y.ExprType()
-			if yT == CONSTANT && !hasCoeff {
-				hasCoeff = true
+			if yT == CONSTANT && !hasConst {
+				hasConst = true
 			}
 
+			if yT == CONSTANTF {
+				if coeff == nil {
+					coeff = y.(*ConstantF)
+				} else {
+					coeff.F *= y.(*ConstantF).F
+					terms[j] = nil
+					continue
+				}
+			}
+
+			var yC Expr
 			yTb := NULL
 			switch yT {
 			case NEG:
-				yTb = y.(*Neg).C.ExprType()
+				yC = y.(*Neg).C
+				yTb = yC.ExprType()
 			case POWI:
 				p := y.(*PowI)
+				yC = p.Base
 				yTb = p.Base.ExprType()
 				powY = float64(p.Power)
 			case POWF:
 				p := y.(*PowF)
+				yC = p.Base
 				yTb = p.Base.ExprType()
 				powY = p.Power
 			}
@@ -874,17 +956,25 @@ func groupMulTerms(m *Mul) (changed bool) {
 			// This is the actual comparison Code
 			same := false
 			if xT == yT {
-				same = true
-				powSum += powY
+				if x.AmISame(y) {
+					same = true
+					powSum += powY
+				}
 			} else if xTb == yT {
-				same = true
-				powSum += powY
+				if xC.AmISame(y) {
+					same = true
+					powSum += powY
+				}
 			} else if xT == yTb {
-				same = true
-				powSum += powY
+				if x.AmISame(yC) {
+					same = true
+					powSum += powY
+				}
 			} else if xTb == yTb && xTb != NULL {
-				same = true
-				powSum += powY
+				if xC.AmISame(yC) {
+					same = true
+					powSum += powY
+				}
 			}
 
 			// Check the results of camparison update the terms

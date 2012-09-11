@@ -18,6 +18,7 @@ const (
   SQRT
   SIN
   COS
+  TAN
   EXP
   LOG
   POWI
