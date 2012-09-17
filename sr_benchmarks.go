@@ -145,7 +145,7 @@ var zU5050 = BenchmarkVar{"z", 2, Uniform, -50.0, 50.0, 0.0}
 var vU5050 = BenchmarkVar{"v", 3, Uniform, -50.0, 50.0, 0.0}
 var wU5050 = BenchmarkVar{"w", 4, Uniform, -50.0, 50.0, 0.0}
 
-var Korns5 = []BenchmarkVar{xU5050, yU5050, zU5050, vU5050, wU5050}
+var korns5 = []BenchmarkVar{xU5050, yU5050, zU5050, vU5050, wU5050}
 var xyU01 = []BenchmarkVar{xU01, yU01}
 
 var xE11_01 = BenchmarkVar{"x", 0, Equal, -1.0, 1.0, 0.01}
@@ -180,21 +180,21 @@ var benchmarks = []Benchmark{
 	Benchmark{"Pagie_1", xyE55_4, 0, nil, 0, "1 / (1 + x^-4) + 1 / (1 + y^-4)"},
 
 	// 5 inputs: x,y,z,v,w
-	Benchmark{"Korns_01", Korns5, 10000, Korns5, 10000, "1.57 + 24.3*v"},
-	Benchmark{"Korns_02", Korns5, 10000, Korns5, 10000, "0.23 + 14.2*(v+y)/3w"},
-	Benchmark{"Korns_03", Korns5, 10000, Korns5, 10000, "-5.41 + 4.9*(v-x+y/w)/3w"},
-	Benchmark{"Korns_04", Korns5, 10000, Korns5, 10000, "-2.3 + 0.13sin(z)"},
-	Benchmark{"Korns_05", Korns5, 10000, Korns5, 10000, "3 + 2.13*ln(w)"},
-	Benchmark{"Korns_06", Korns5, 10000, Korns5, 10000, "1.3 + 0.13*sqrt(x)"},
-	Benchmark{"Korns_07", Korns5, 10000, Korns5, 10000, "213.80940889*(1 - e^(-0.54723748542x))"},
-	Benchmark{"Korns_08", Korns5, 10000, Korns5, 10000, "6.87 + 11*sqrt(7.23*x*v*w)"},
-	Benchmark{"Korns_09", Korns5, 10000, Korns5, 10000, "(sqrt(x)/ln(y)) * (e^z / v^2)"},
-	Benchmark{"Korns_10", Korns5, 10000, Korns5, 10000, "0.81 + 24.3*(2y+3*z^2)/(4*(v)^3+5*(w)^4)"},
-	Benchmark{"Korns_11", Korns5, 10000, Korns5, 10000, "6.87 + 11*cos(7.23*x^3)"},
-	Benchmark{"Korns_12", Korns5, 10000, Korns5, 10000, "2 - 2.1*cos(9.8*x)*sin(1.3*w)"},
-	Benchmark{"Korns_13", Korns5, 10000, Korns5, 10000, "32 - 3*(tan(x)*tan(z))/(tan(y)*tan(v))"},
-	// Benchmark{"Korns_14", Korns5, 10000, Korns5, 10000, "22 - 4.2*(cos(x)-tan(y))*(tanh(z)/sin(v))"},
-	Benchmark{"Korns_15", Korns5, 10000, Korns5, 10000, "12 - 6*(tan(x)/e^y)(ln(z)-tan(v))"},
+	Benchmark{"Korns_01", korns5, 10000, korns5, 10000, "1.57 + 24.3*v"},
+	Benchmark{"Korns_02", korns5, 10000, korns5, 10000, "0.23 + 14.2*(v+y)/3w"},
+	Benchmark{"Korns_03", korns5, 10000, korns5, 10000, "-5.41 + 4.9*(v-x+y/w)/3w"},
+	Benchmark{"Korns_04", korns5, 10000, korns5, 10000, "-2.3 + 0.13sin(z)"},
+	Benchmark{"Korns_05", korns5, 10000, korns5, 10000, "3 + 2.13*ln(w)"},
+	Benchmark{"Korns_06", korns5, 10000, korns5, 10000, "1.3 + 0.13*sqrt(x)"},
+	Benchmark{"Korns_07", korns5, 10000, korns5, 10000, "213.80940889*(1 - e^(-0.54723748542x))"},
+	Benchmark{"Korns_08", korns5, 10000, korns5, 10000, "6.87 + 11*sqrt(7.23*x*v*w)"},
+	Benchmark{"Korns_09", korns5, 10000, korns5, 10000, "(sqrt(x)/ln(y)) * (e^z / v^2)"},
+	Benchmark{"Korns_10", korns5, 10000, korns5, 10000, "0.81 + 24.3*(2y+3*z^2)/(4*(v)^3+5*(w)^4)"},
+	Benchmark{"Korns_11", korns5, 10000, korns5, 10000, "6.87 + 11*cos(7.23*x^3)"},
+	Benchmark{"Korns_12", korns5, 10000, korns5, 10000, "2 - 2.1*cos(9.8*x)*sin(1.3*w)"},
+	Benchmark{"Korns_13", korns5, 10000, korns5, 10000, "32 - 3*(tan(x)*tan(z))/(tan(y)*tan(v))"},
+	// Benchmark{"Korns_14", korns5, 10000, korns5, 10000, "22 - 4.2*(cos(x)-tan(y))*(tanh(z)/sin(v))"},
+	Benchmark{"Korns_15", korns5, 10000, korns5, 10000, "12 - 6*(tan(x)/e^y)(ln(z)-tan(v))"},
 
 	Benchmark{"Keijzer_01", []BenchmarkVar{xE11_01}, 0, []BenchmarkVar{xE11_001}, 0, "0.3*x*sin(2*PI*x)"},
 	Benchmark{"Keijzer_02", []BenchmarkVar{xE22_01}, 0, []BenchmarkVar{xE22_001}, 0, "0.3*x*sin(2*PI*x)"},
