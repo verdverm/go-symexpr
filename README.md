@@ -1,11 +1,12 @@
 
 Symbolic Expressions (just math for now)
+========================================
  - represetation: as an AST tree
  - manipulation: add,rm, simplify, derivative
  - evaluation: explicit, RK4 integration, non-linear regression via levmar->MINPACK
  - printing: String() print, prettyprint, serialization
 
-
+```
 type exprType int
 
 const (
@@ -126,5 +127,7 @@ type Expr interface {
 	// Calculate the derivative w.r.t. Constant_i
 	DerivConst(i int) Expr
 }
+```
 
 Tony Worm  Sept, 2012
+---------------------
