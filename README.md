@@ -6,7 +6,7 @@ Symbolic Expressions (just math for now)
  - evaluation: explicit, RK4 integration, non-linear regression via levmar->MINPACK
  - printing: String() print, prettyprint, serialization
 
-```
+``` go
 type exprType int
 
 const (
@@ -130,4 +130,3 @@ type Expr interface {
 ```
 
 Tony Worm  Sept, 2012
----------------------
