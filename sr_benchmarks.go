@@ -1,9 +1,6 @@
 package symexpr
 
 import (
-	// "fmt"
-	// "strings"
-	"data"
 	"math/rand"
 )
 
@@ -36,8 +33,8 @@ type Problem struct {
 	Name      string
 	VarNames  []string
 	FuncTree  Expr // function as tree
-	TrainData data.PointSet
-	TestData  data.PointSet
+	TrainData PointSet
+	TestData  PointSet
 }
 
 func ParseFunc(text string, varNames []string) Expr {
@@ -82,8 +79,8 @@ func GenBenchmark(b Benchmark) (p *Problem) {
 	return p
 }
 
-func GenBenchData(e Expr, vars []BenchmarkVar, samples int) (pts []data.Point) {
-	pts = make([]data.Point, samples)
+func GenBenchData(e Expr, vars []BenchmarkVar, samples int) (pts []Point) {
+	pts = make([]Point, samples)
 	if vars[0].Rtype == Uniform {
 
 		for i := 0; i < samples; i++ {
@@ -110,7 +107,7 @@ func GenBenchData(e Expr, vars []BenchmarkVar, samples int) (pts []data.Point) {
 			input := make([]float64, len(vars))
 			copy(input, counter)
 			out := e.Eval(0, input, nil, nil)
-			var pnt data.Point
+			var pnt Point
 			pnt.SetIndeps(input)
 			pnt.SetDepnds([]float64{out})
 			pts = append(pts, pnt)

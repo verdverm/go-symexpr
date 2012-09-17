@@ -1,6 +1,12 @@
-Tony Worm  2011
 
-Symbolic Expressions 
- - represetation
- - manipulation
- - evaluation
+Symbolic Expressions (just math for now)
+ - represetation, as an AST tree
+ - manipulation, add,rm, simplify, derivative
+ - evaluation, explicit, RK4 integration, non-linear regression
+
+
+
+
+
+
+Tony Worm  2011
