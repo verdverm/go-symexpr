@@ -13,12 +13,12 @@ import (
 type exprType int
 
 const (
-	NULL exprType = iota
-	CONSTANT
-	CONSTANTF
-	TIME
-	SYSTEM
-	VAR
+	NULL      exprType = iota
+	CONSTANT           // indexed constant, useful for regression tasks
+	CONSTANTF          // floating point constant
+	TIME               // useful when looking at time series and RK4 integration
+	SYSTEM             // i use this like a variable that changes between experiments, but not with time (mass,size,etc.)
+	VAR                // a canonical variable
 
 	NEG
 	ABS
@@ -28,14 +28,14 @@ const (
 	TAN
 	EXP
 	LOG
-	POWI
-	POWF
+	POWI // Expr^Integer
+	POWF // Expr^Float
 
-	POWE
+	POWE // Expr^Expr
 	DIV
 
-	ADD
-	MUL
+	ADD // these can have more than two child nodes
+	MUL // this eases simplification
 
 	EXPR_MAX
 	STARTVAR // for serialization reduction of variables
