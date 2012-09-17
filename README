@@ -127,4 +127,4 @@ type Expr interface {
 	DerivConst(i int) Expr
 }
 
-Tony Worm  2011
+Tony Worm  Sept, 2012
