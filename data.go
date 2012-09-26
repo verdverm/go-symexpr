@@ -123,8 +123,10 @@ func (s *PntSubset) Refresh() {
 func (d *PointSet) ReadPointSet(filename string) {
 	ftotal, err := os.OpenFile(filename, os.O_RDONLY, 0)
 	if err != nil {
+		fmt.Printf("err: %v\n", err)
 		return
 	}
+	defer ftotal.Close()
 	file := bufio.NewReader(ftotal)
 
 	var word string
@@ -148,7 +150,7 @@ func (d *PointSet) ReadPointSet(filename string) {
 		d.depndNames = append(d.depndNames, word)
 	}
 
-	fmt.Printf("Var Names = %v | %v\n", d.depndNames, d.indepNames)
+	// fmt.Printf("Var Names = %v | %v\n", d.depndNames, d.indepNames)
 
 	for i := 0; ; i++ {
 		var pnt Point
@@ -181,11 +183,15 @@ func (d *PointSet) ReadPointSet(filename string) {
 }
 
 func (d *PointSet) WritePointSet(filename string) {
+	fmt.Printf("Writing file: %s\n", filename)
 	ftotal, err := os.Create(filename)
 	if err != nil {
+		fmt.Printf("Error creating file: %s  %v\n", filename, err)
 		return
 	}
+	defer ftotal.Close()
 	file := bufio.NewWriter(ftotal)
+	defer file.Flush()
 
 	// write independent variable names (x_i...)
 	for i := 0; i < d.NumIndep(); i++ {

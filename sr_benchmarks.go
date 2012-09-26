@@ -1,13 +1,15 @@
 package symexpr
 
 import (
+	// "fmt"
 	"math/rand"
 )
 
 type RangeType int
 
 const (
-	Uniform RangeType = iota
+	_ RangeType = iota
+	Uniform
 	Equal
 )
 
@@ -61,31 +63,30 @@ func GenBenchmark(b Benchmark) (p *Problem) {
 	p.FuncTree = sort
 
 	trn := p.TrainData
-	trn.SetFN("gen_train")
+	trn.SetFN(b.Name + "_train")
 	trn.SetID(0)
 	trn.SetNumDim(len(varNames))
 	trn.SetIndepNames(varNames)
 	trn.SetDepndNames([]string{"f(xs)"})
 	trn.SetPoints(GenBenchData(expr, b.TrainVars, b.TrainSamples))
+	p.TrainData = trn
 
 	tst := p.TestData
-	tst.SetFN("gen_train")
+	tst.SetFN(b.Name + "_test")
 	tst.SetID(0)
 	tst.SetNumDim(len(varNames))
 	tst.SetIndepNames(varNames)
 	tst.SetDepndNames([]string{"f(xs)"})
 	tst.SetPoints(GenBenchData(expr, b.TestVars, b.TestSamples))
+	p.TestData = tst
 
 	return p
 }
 
 func GenBenchData(e Expr, vars []BenchmarkVar, samples int) (pts []Point) {
-	pts = make([]Point, samples)
+	pts = make([]Point, 0)
 	if vars[0].Rtype == Uniform {
-
 		for i := 0; i < samples; i++ {
-			pnt := pts[i]
-			// set inputs
 			input := make([]float64, len(vars))
 			for j, v := range vars {
 				r := rand.Float64()
@@ -93,8 +94,10 @@ func GenBenchData(e Expr, vars []BenchmarkVar, samples int) (pts []Point) {
 			}
 
 			out := e.Eval(0, input, nil, nil)
+			var pnt Point
 			pnt.SetIndeps(input)
 			pnt.SetDepnds([]float64{out})
+			pts = append(pts, pnt)
 		}
 	} else { // RangeType == Equal
 		counter := make([]float64, len(vars))
@@ -106,6 +109,7 @@ func GenBenchData(e Expr, vars []BenchmarkVar, samples int) (pts []Point) {
 		for counter[L1] <= L2 {
 			input := make([]float64, len(vars))
 			copy(input, counter)
+
 			out := e.Eval(0, input, nil, nil)
 			var pnt Point
 			pnt.SetIndeps(input)
@@ -157,24 +161,24 @@ var yE55_4 = BenchmarkVar{"y", 1, Equal, -5.0, 5.0, 0.4}
 var xyE55_4 = []BenchmarkVar{xE55_4, yE55_4}
 
 var BenchmarkList = []Benchmark{
-	Benchmark{"Koza_1", []BenchmarkVar{xU11}, 20, nil, 0, "x^4 + x^3 + x^2 + x"},
-	Benchmark{"Koza_2", []BenchmarkVar{xU11}, 20, nil, 0, "x^5 - 2x^3 + x"},
-	Benchmark{"Koza_3", []BenchmarkVar{xU11}, 20, nil, 0, "x^6 - 2x^4 + x^2"},
+	Benchmark{"Koza_1", []BenchmarkVar{xU11}, 20, []BenchmarkVar{xU11}, 20, "x^4 + x^3 + x^2 + x"},
+	Benchmark{"Koza_2", []BenchmarkVar{xU11}, 20, []BenchmarkVar{xU11}, 20, "x^5 - 2x^3 + x"},
+	Benchmark{"Koza_3", []BenchmarkVar{xU11}, 20, []BenchmarkVar{xU11}, 20, "x^6 - 2x^4 + x^2"},
 
-	Benchmark{"Nguyen_01", []BenchmarkVar{xU11}, 20, nil, 0, "x^3 + x^2 + x"},
-	Benchmark{"Nguyen_02", []BenchmarkVar{xU11}, 20, nil, 0, "x^4 + x^3 + x^2 + x"},
-	Benchmark{"Nguyen_03", []BenchmarkVar{xU11}, 20, nil, 0, "x^5 + x^4 + x^3 + x^2 + x"},
-	Benchmark{"Nguyen_04", []BenchmarkVar{xU11}, 20, nil, 0, "x^6 + x^5 + x^4 + x^3 + x^2 + x"},
-	Benchmark{"Nguyen_05", []BenchmarkVar{xU11}, 20, nil, 0, "sin(x^2)*cos(x) - 1"},
-	Benchmark{"Nguyen_06", []BenchmarkVar{xU11}, 20, nil, 0, "sin(x) + sin(x + x^2)"},
-	Benchmark{"Nguyen_07", []BenchmarkVar{xU02}, 20, nil, 0, "ln(x+1) + ln(x^2 + 1)"},
-	Benchmark{"Nguyen_08", []BenchmarkVar{xU04}, 20, nil, 0, "sqrt(x)"},
-	Benchmark{"Nguyen_09", xyU01, 20, nil, 0, "sin(x) + sin(y^2)"},
-	Benchmark{"Nguyen_10", xyU01, 20, nil, 0, "2*sin(x)*cos(y)"},
-	Benchmark{"Nguyen_11", xyU01, 20, nil, 0, "x^y"},
-	Benchmark{"Nguyen_12", xyU01, 20, nil, 0, "x^4 - x^3 + 0.5*y^2 - y"},
+	Benchmark{"Nguyen_01", []BenchmarkVar{xU11}, 20, []BenchmarkVar{xU11}, 20, "x^3 + x^2 + x"},
+	Benchmark{"Nguyen_02", []BenchmarkVar{xU11}, 20, []BenchmarkVar{xU11}, 20, "x^4 + x^3 + x^2 + x"},
+	Benchmark{"Nguyen_03", []BenchmarkVar{xU11}, 20, []BenchmarkVar{xU11}, 20, "x^5 + x^4 + x^3 + x^2 + x"},
+	Benchmark{"Nguyen_04", []BenchmarkVar{xU11}, 20, []BenchmarkVar{xU11}, 20, "x^6 + x^5 + x^4 + x^3 + x^2 + x"},
+	Benchmark{"Nguyen_05", []BenchmarkVar{xU11}, 20, []BenchmarkVar{xU11}, 20, "sin(x^2)*cos(x) - 1"},
+	Benchmark{"Nguyen_06", []BenchmarkVar{xU11}, 20, []BenchmarkVar{xU11}, 20, "sin(x) + sin(x + x^2)"},
+	Benchmark{"Nguyen_07", []BenchmarkVar{xU02}, 20, []BenchmarkVar{xU02}, 20, "ln(x+1) + ln(x^2 + 1)"},
+	Benchmark{"Nguyen_08", []BenchmarkVar{xU04}, 20, []BenchmarkVar{xU04}, 20, "sqrt(x)"},
+	Benchmark{"Nguyen_09", xyU01, 20, xyU01, 20, "sin(x) + sin(y^2)"},
+	Benchmark{"Nguyen_10", xyU01, 20, xyU01, 20, "2*sin(x)*cos(y)"},
+	Benchmark{"Nguyen_11", xyU01, 20, xyU01, 20, "x^y"},
+	Benchmark{"Nguyen_12", xyU01, 20, xyU01, 20, "x^4 - x^3 + 0.5*y^2 - y"},
 
-	Benchmark{"Pagie_1", xyE55_4, 0, nil, 0, "1 / (1 + x^-4) + 1 / (1 + y^-4)"},
+	Benchmark{"Pagie_1", xyE55_4, 0, xyE55_4, 0, "1 / (1 + x^-4) + 1 / (1 + y^-4)"},
 
 	// 5 inputs: x,y,z,v,w
 	Benchmark{"Korns_01", korns5, 10000, korns5, 10000, "1.57 + 24.3*v"},
