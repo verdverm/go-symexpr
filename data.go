@@ -180,6 +180,53 @@ func (d *PointSet) ReadPointSet(filename string) {
 	//   fmt.Printf("Num Points: %v\n", len(d.dataPoints) )
 }
 
+func (d *PointSet) WritePointSet(filename string) {
+	ftotal, err := os.Create(filename)
+	if err != nil {
+		return
+	}
+	file := bufio.NewWriter(ftotal)
+
+	// write independent variable names (x_i...)
+	for i := 0; i < d.NumIndep(); i++ {
+		_, err := fmt.Fprintf(file, "%s ", d.IndepName(i))
+		if err != nil {
+			fmt.Errorf("error writing pointset to file: %v\n", err)
+			break
+		}
+	}
+	fmt.Fprintln(file)
+
+	// trite dependent variable names (y_j...)
+	for i := 0; i < d.NumDepnd(); i++ {
+		_, err := fmt.Fprintf(file, "%s ", d.DepndName(i))
+		if err != nil {
+			break
+		}
+	}
+	fmt.Fprintln(file)
+
+	// write points 
+	points := d.Points()
+	for i := 0; i < d.NumPoints(); i++ {
+		indep := points[i].Indeps()
+		depnd := points[i].Depnds()
+		for j := 0; j < len(indep); j++ {
+			_, err = fmt.Fprintf(file, "%f ", indep[j])
+			if err != nil {
+				break
+			}
+		}
+		for j := 0; j < len(depnd); j++ {
+			_, err = fmt.Fprintf(file, "%f ", depnd[j])
+			if err != nil {
+				break
+			}
+		}
+		fmt.Fprintln(file)
+	}
+}
+
 func SplitPointSetTrainTest(pnts *PointSet, pcnt_train float64, seed int) (train, test *PointSet) {
 
 	train = new(PointSet)

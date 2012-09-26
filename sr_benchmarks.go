@@ -156,7 +156,7 @@ var xE55_4 = BenchmarkVar{"x", 0, Equal, -5.0, 5.0, 0.4}
 var yE55_4 = BenchmarkVar{"y", 1, Equal, -5.0, 5.0, 0.4}
 var xyE55_4 = []BenchmarkVar{xE55_4, yE55_4}
 
-var benchmarks = []Benchmark{
+var BenchmarkList = []Benchmark{
 	Benchmark{"Koza_1", []BenchmarkVar{xU11}, 20, nil, 0, "x^4 + x^3 + x^2 + x"},
 	Benchmark{"Koza_2", []BenchmarkVar{xU11}, 20, nil, 0, "x^5 - 2x^3 + x"},
 	Benchmark{"Koza_3", []BenchmarkVar{xU11}, 20, nil, 0, "x^6 - 2x^4 + x^2"},
