@@ -39,9 +39,46 @@ type Problem struct {
 	TestData  PointSet
 }
 
-func ParseFunc(text string, varNames []string) Expr {
-	expr := parse(text, varNames)
-	return expr
+type ExprProblemType int
+
+const (
+	UnknownPType ExprProblemType = iota
+	ExprBenchmark
+	ExprDiffeq
+	ExprRealData
+)
+
+type ExprProblem struct {
+	Name string
+
+	SearchVar  int
+	UsableVars []int
+
+	Train PointSet
+	Test  PointSet
+}
+
+type BenchProblem struct {
+}
+
+type DiffeqProblem struct {
+}
+
+type RealProblem struct {
+}
+
+func ProblemTypeFromString(ptype string) ExprProblemType {
+	switch ptype {
+	case "benchmark":
+		return ExprBenchmark
+	case "diffeq":
+		return ExprDiffeq
+	case "real":
+		return ExprRealData
+	default:
+		return UnknownPType
+	}
+	return UnknownPType
 }
 
 func GenBenchmark(b Benchmark) (p *Problem) {

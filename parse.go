@@ -7,6 +7,11 @@ import (
 	"math"
 )
 
+func ParseFunc(text string, varNames []string) Expr {
+	expr := parse(text, varNames)
+	return expr
+}
+
 var itemPrec = map[itemType]int{
 	itemAdd:     3,
 	itemNeg:     4,
@@ -82,10 +87,10 @@ func parseExpr(prefix string, L *lexer, p int) Expr {
 				switch e2.ExprType() {
 				case CONSTANTF:
 					pow := NewPowF(e, e2.(*ConstantF).F)
-					e = pow				
+					e = pow
 				default:
 					pow := NewPowE(e, e2)
-					e = pow				
+					e = pow
 				}
 			}
 			// fmt.Printf("%snew e: %v\n", prefix, e)
