@@ -19,7 +19,7 @@ type SimpRules struct {
 }
 
 func DefaultRules() SimpRules {
-	return SimpRules{true,true, true, 12, 0, false}
+	return SimpRules{true, true, true, 12, 0, false}
 }
 
 func (l *Leaf) Simplify(rules SimpRules) Expr  { return nil }
@@ -294,7 +294,7 @@ func (u *Log) Simplify(rules SimpRules) (ret Expr) {
 func (u *PowI) Simplify(rules SimpRules) Expr {
 	var (
 		ret Expr     = u
-		t   exprType = NULL
+		t   ExprType = NULL
 	)
 	if u.Base != nil {
 		// serial := make([]int, 0, 64)
@@ -360,7 +360,7 @@ func (u *PowI) Simplify(rules SimpRules) Expr {
 func (u *PowF) Simplify(rules SimpRules) Expr {
 	var (
 		ret Expr     = u
-		t   exprType = NULL
+		t   ExprType = NULL
 	)
 	if u.Base != nil {
 		u.Base = u.Base.Simplify(rules)
@@ -383,7 +383,7 @@ func (u *PowF) Simplify(rules SimpRules) Expr {
 func (n *PowE) Simplify(rules SimpRules) Expr {
 	var (
 		ret    Expr     = n
-		t1, t2 exprType = NULL, NULL
+		t1, t2 ExprType = NULL, NULL
 	)
 	if n.Base != nil {
 		n.Base = n.Base.Simplify(rules)
@@ -416,7 +416,7 @@ func (n *PowE) Simplify(rules SimpRules) Expr {
 func (n *Div) Simplify(rules SimpRules) Expr {
 	var (
 		ret    Expr     = n
-		t1, t2 exprType = NULL, NULL
+		t1, t2 ExprType = NULL, NULL
 	)
 	if n.Numer != nil {
 		n.Numer = n.Numer.Simplify(rules)

@@ -27,7 +27,7 @@ type Time struct {
 }
 
 func NewTime() *Time               { return new(Time) }
-func (t *Time) ExprType() exprType { return TIME }
+func (t *Time) ExprType() ExprType { return TIME }
 func (t *Time) Clone() Expr        { return NewTime() }
 
 type Var struct {
@@ -40,7 +40,7 @@ func NewVar(i int) *Var {
 	v.P = i
 	return v
 }
-func (v *Var) ExprType() exprType { return VAR }
+func (v *Var) ExprType() ExprType { return VAR }
 func (v *Var) Clone() Expr        { return NewVar(v.P) }
 
 type Constant struct {
@@ -53,7 +53,7 @@ func NewConstant(i int) *Constant {
 	c.P = i
 	return c
 }
-func (c *Constant) ExprType() exprType { return CONSTANT }
+func (c *Constant) ExprType() ExprType { return CONSTANT }
 func (c *Constant) Clone() Expr        { return NewConstant(c.P) }
 
 type ConstantF struct {
@@ -66,7 +66,7 @@ func NewConstantF(f float64) *ConstantF {
 	c.F = f
 	return c
 }
-func (c *ConstantF) ExprType() exprType { return CONSTANTF }
+func (c *ConstantF) ExprType() ExprType { return CONSTANTF }
 func (c *ConstantF) Clone() Expr        { return NewConstantF(c.F) }
 
 type System struct {
@@ -79,7 +79,7 @@ func NewSystem(i int) *System {
 	s.P = i
 	return s
 }
-func (s *System) ExprType() exprType { return SYSTEM }
+func (s *System) ExprType() ExprType { return SYSTEM }
 func (s *System) Clone() Expr        { return NewSystem(s.P) }
 
 // Unary Operators
@@ -92,7 +92,7 @@ func NewNeg(e Expr) *Neg {
 	n.C = e
 	return n
 }
-func (u *Neg) ExprType() exprType { return NEG }
+func (u *Neg) ExprType() ExprType { return NEG }
 func (u *Neg) Clone() Expr {
 	var C Expr
 	if u.C != nil {
@@ -110,7 +110,7 @@ func NewAbs(e Expr) *Abs {
 	n.C = e
 	return n
 }
-func (u *Abs) ExprType() exprType { return ABS }
+func (u *Abs) ExprType() ExprType { return ABS }
 func (u *Abs) Clone() Expr {
 	var C Expr
 	if u.C != nil {
@@ -128,7 +128,7 @@ func NewSqrt(e Expr) *Sqrt {
 	n.C = e
 	return n
 }
-func (u *Sqrt) ExprType() exprType { return SQRT }
+func (u *Sqrt) ExprType() ExprType { return SQRT }
 func (u *Sqrt) Clone() Expr {
 	var C Expr
 	if u.C != nil {
@@ -146,7 +146,7 @@ func NewSin(e Expr) *Sin {
 	n.C = e
 	return n
 }
-func (u *Sin) ExprType() exprType { return SIN }
+func (u *Sin) ExprType() ExprType { return SIN }
 func (u *Sin) Clone() Expr {
 	var C Expr
 	if u.C != nil {
@@ -164,7 +164,7 @@ func NewCos(e Expr) *Cos {
 	n.C = e
 	return n
 }
-func (u *Cos) ExprType() exprType { return COS }
+func (u *Cos) ExprType() ExprType { return COS }
 func (u *Cos) Clone() Expr {
 	var C Expr
 	if u.C != nil {
@@ -182,7 +182,7 @@ func NewTan(e Expr) *Tan {
 	n.C = e
 	return n
 }
-func (u *Tan) ExprType() exprType { return TAN }
+func (u *Tan) ExprType() ExprType { return TAN }
 func (u *Tan) Clone() Expr {
 	var C Expr
 	if u.C != nil {
@@ -200,7 +200,7 @@ func NewExp(e Expr) *Exp {
 	n.C = e
 	return n
 }
-func (u *Exp) ExprType() exprType { return EXP }
+func (u *Exp) ExprType() ExprType { return EXP }
 func (u *Exp) Clone() Expr {
 	var C Expr
 	if u.C != nil {
@@ -218,7 +218,7 @@ func NewLog(e Expr) *Log {
 	n.C = e
 	return n
 }
-func (u *Log) ExprType() exprType { return LOG }
+func (u *Log) ExprType() ExprType { return LOG }
 func (u *Log) Clone() Expr {
 	var C Expr
 	if u.C != nil {
@@ -242,7 +242,7 @@ func NewPowI(e Expr, i int) *PowI {
 	n.Power = i
 	return n
 }
-func (u *PowI) ExprType() exprType { return POWI }
+func (u *PowI) ExprType() ExprType { return POWI }
 func (u *PowI) Clone() Expr        { return NewPowI(u.Base, u.Power) }
 
 type PowF struct {
@@ -257,7 +257,7 @@ func NewPowF(b Expr, f float64) *PowF {
 	n.Power = f
 	return n
 }
-func (u *PowF) ExprType() exprType { return POWF }
+func (u *PowF) ExprType() ExprType { return POWF }
 func (u *PowF) Clone() Expr {
 	var base Expr
 	if u.Base != nil {
@@ -278,7 +278,7 @@ func NewPowE(b, p Expr) *PowE {
 	n.Power = p
 	return n
 }
-func (n *PowE) ExprType() exprType { return POWE }
+func (n *PowE) ExprType() ExprType { return POWE }
 func (n *PowE) Clone() Expr {
 	var base, pow Expr
 	if n.Base != nil {
@@ -302,7 +302,7 @@ func NewDiv(n, d Expr) *Div {
 	D.Denom = d
 	return D
 }
-func (n *Div) ExprType() exprType { return DIV }
+func (n *Div) ExprType() ExprType { return DIV }
 func (n *Div) Clone() Expr {
 	var N, D Expr
 	if n.Numer != nil {
@@ -324,7 +324,7 @@ func NewAdd() *Add {
 	a.CS = make([]Expr, 0)
 	return a
 }
-func (n *Add) ExprType() exprType { return ADD }
+func (n *Add) ExprType() ExprType { return ADD }
 
 func (n *Add) Clone() Expr {
 	a := new(Add)
@@ -355,7 +355,7 @@ func NewMul() *Mul {
 	m.CS = make([]Expr, 0)
 	return m
 }
-func (n *Mul) ExprType() exprType { return MUL }
+func (n *Mul) ExprType() ExprType { return MUL }
 func (n *Mul) Clone() Expr {
 	a := NewMul()
 	a.CS = make([]Expr, len(n.CS))

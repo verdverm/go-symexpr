@@ -10,10 +10,10 @@ import (
 	"math"
 )
 
-type exprType int
+type ExprType int
 
 const (
-	NULL      exprType = iota
+	NULL      ExprType = iota
 	CONSTANT           // indexed constant, useful for regression tasks
 	CONSTANTF          // floating point constant
 	TIME               // useful when looking at time series and RK4 integration
@@ -46,7 +46,7 @@ const (
 type Expr interface {
 
 	// types.go (this file)
-	ExprType() exprType
+	ExprType() ExprType
 	Clone() Expr
 
 	// stats.go
@@ -154,7 +154,7 @@ type Null struct {
 }
 
 func NewNull() Expr                { return new(Null) }
-func (n *Null) ExprType() exprType { return NULL }
+func (n *Null) ExprType() ExprType { return NULL }
 func (n *Null) Clone() Expr        { return &Null{ExprStats{0, 0, 0, 0}} }
 
 func (n *Null) CalcExprStats(currDepth int) (mySize int) {
