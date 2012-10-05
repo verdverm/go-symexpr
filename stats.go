@@ -1,5 +1,18 @@
 package symexpr
 
+type ExprParams struct {
+
+	// bounds on tree
+	MaxS, MaxD,
+	MinS, MinD int
+
+	// bounds on some operators
+	NumDim, NumSys, NumCoeff int
+
+	// usable terms at each location
+	Roots, Nodes, Leafs, NonTrig []Expr
+}
+
 type ExprStats struct {
 	depth   int // layers from top (root == 1)
 	height  int // layers of subtree (leaf == 1)
