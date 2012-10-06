@@ -397,16 +397,19 @@ func (n *Mul) AmILess(r Expr) bool {
 			if n.CS[0].ExprType() == CONSTANT && n.CS[1].AmISame(r) {
 				return true
 			}
+			if n.CS[0].ExprType() == CONSTANTF && n.CS[1].AmISame(r) {
+				return true
+			}
 		}
 		return false
 	}
 	m := r.(*Mul)
 	ln, lm := len(n.CS), len(m.CS)
 	sn, sm := 0, 0
-	if n.CS[0].ExprType() == CONSTANT {
+	if n.CS[0].ExprType() == CONSTANT || n.CS[0].ExprType() == CONSTANTF {
 		sn++
 	}
-	if m.CS[0].ExprType() == CONSTANT {
+	if m.CS[0].ExprType() == CONSTANT || m.CS[0].ExprType() == CONSTANTF {
 		sm++
 	}
 
@@ -467,6 +470,9 @@ func (n *Mul) AmIAlmostSame(r Expr) bool {
 			if n.CS[0].ExprType() == CONSTANT && n.CS[1].AmIAlmostSame(r) {
 				return true
 			}
+			if n.CS[0].ExprType() == CONSTANTF && n.CS[1].AmIAlmostSame(r) {
+				return true
+			}
 		}
 		return false
 	}
@@ -475,10 +481,10 @@ func (n *Mul) AmIAlmostSame(r Expr) bool {
 	m := r.(*Mul)
 	ln, lm := len(n.CS), len(m.CS)
 	sn, sm := 0, 0
-	if n.CS[0].ExprType() == CONSTANT {
+	if n.CS[0].ExprType() == CONSTANT || n.CS[0].ExprType() == CONSTANTF {
 		sn++
 	}
-	if m.CS[0].ExprType() == CONSTANT {
+	if m.CS[0].ExprType() == CONSTANT || m.CS[0].ExprType() == CONSTANTF {
 		sm++
 	}
 	// fmt.Printf("lens: %d %d %d %d\n", sn, ln, sm, lm)

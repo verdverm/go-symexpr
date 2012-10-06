@@ -838,3 +838,63 @@ func Test_Damd(TEST *testing.T) {
 		TEST.Logf("MulVar:  %v -> %v", ms, ms_simp)
 	}
 }
+
+func Test_ConstantF(TEST *testing.T) {
+	fmt.Printf("Testing: ConstantF Simps\n---------------------\n\n")
+	var rules = DefaultRules()
+	rules.ConvertConsts = false
+
+	vnames := []string{"x", "y", "z"}
+
+	f1 := parse("x + x", vnames)
+	fmt.Printf("f1 orig: %v\n", f1)
+	f1s := f1.Clone().Simplify(rules)
+	fmt.Printf("f1 simp: %v\n\n", f1s)
+
+	f2 := parse("2*x + x", vnames)
+	fmt.Printf("f2 orig: %v\n", f2)
+	f2s := f2.Clone().Simplify(rules)
+	fmt.Printf("f2 simp: %v\n\n", f2s)
+
+	f3 := parse("x + 2*x", vnames)
+	fmt.Printf("f3 orig: %v\n", f3)
+	f3s := f3.Clone().Simplify(rules)
+	fmt.Printf("f3 simp: %v\n\n", f3s)
+
+	f4 := parse("2*x + 3*x", vnames)
+	fmt.Printf("f4 orig: %v\n", f4)
+	f4s := f4.Clone().Simplify(rules)
+	fmt.Printf("f4 simp: %v\n\n", f4s)
+
+	f5 := parse("x - x", vnames)
+	fmt.Printf("f5 orig: %v\n", f5)
+	f5s := f5.Clone().Simplify(rules)
+	fmt.Printf("f5 simp: %v\n\n", f5s)
+
+	f6 := parse("2*x - x", vnames)
+	fmt.Printf("f6 orig: %v\n", f6)
+	f6s := f6.Clone().Simplify(rules)
+	fmt.Printf("f6 simp: %v\n\n", f6s)
+
+	f7 := parse("x - 2*x", vnames)
+	fmt.Printf("f7 orig: %v\n", f7)
+	f7s := f7.Clone().Simplify(rules)
+	fmt.Printf("f7 simp: %v\n\n", f7s)
+
+	f8 := parse("2*x - 3*x", vnames)
+	fmt.Printf("f8 orig: %v\n", f8)
+	f8s := f8.Clone().Simplify(rules)
+	fmt.Printf("f8 simp: %v\n\n", f8s)
+
+	f9 := parse("5*x - 2*x", vnames)
+	fmt.Printf("f9 orig: %v\n", f9)
+	f9s := f9.Clone().Simplify(rules)
+	fmt.Printf("f9 simp: %v\n\n", f9s)
+
+	/*
+		XX := parse("x + x", vnames)
+		fmt.Printf("XX orig: %v\n", XX)
+		XXs := XX.Clone().Simplify(rules)
+		fmt.Printf("XX simp: %v\n\n", XXs)
+	*/
+}

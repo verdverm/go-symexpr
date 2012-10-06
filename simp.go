@@ -98,15 +98,6 @@ func (u *Abs) Simplify(rules SimpRules) (ret Expr) {
 	case ABS:
 		ret = u.C
 		u.C = nil
-		// 	case CONSTANT:    Hmmmmmmmmmmm
-		// 	  ret = u.C
-		// 	  u.C = nil
-		// 	case MUL:
-		// 	  m := u.C.(*Mul)
-		// 	  if m.CS[0].ExprType() == CONSTANT {  // Constants should always be first operand in Mul
-		//         ret = u.C
-		//         u.C = nil
-		// 	  }
 	default: // no simplification
 		ret = u
 	}
@@ -132,6 +123,10 @@ func (u *Sqrt) Simplify(rules SimpRules) (ret Expr) {
 	case CONSTANT:
 		ret = u.C
 		u.C = nil
+	case CONSTANTF:
+		ret = u.C
+		u.C = nil
+		ret.(*ConstantF).F = math.Sqrt(ret.(*ConstantF).F)
 	case POWF:
 		p := u.C.(*PowF)
 		p.Power *= 0.5
@@ -546,10 +541,17 @@ func (n *Add) Simplify(rules SimpRules) Expr {
 		// fmt.Printf("iter = %v\n",n.CS)
 		// fmt.Printf("ADD:  %v\n", n)
 		changed = false
-		changed = changed || gatherAddTerms(n)
-		// fmt.Printf("GTH:  %v\n", n)
-		changed = changed || groupAddTerms(n)
-		// fmt.Printf("GRP:  %v\n", n)
+		if rules.ConvertConsts {
+			changed = changed || gatherAddTerms(n)
+			// fmt.Printf("GTH:  %v\n", n)
+			changed = changed || groupAddTerms(n)
+			// fmt.Printf("GRP:  %v\n", n)
+		} else {
+			changed = changed || gatherAddTerms(n)
+			// fmt.Printf("GTH:  %v\n", n)
+			changed = changed || groupAddTermsF(n)
+			// fmt.Printf("GRP:  %v\n", n)
+		}
 		n.Sort()
 		// fmt.Printf("SRT:  %v\n", n)
 	}
@@ -588,10 +590,17 @@ func (n *Mul) Simplify(rules SimpRules) Expr {
 
 		// fmt.Printf("MUL:  %v\n", n)
 		changed = false
-		changed = changed || gatherMulTerms(n)
-		// fmt.Printf("GTH:  %v\n", n)
-		changed = changed || groupMulTerms(n)
-		// fmt.Printf("GRP:  %v\n", n)
+		if rules.ConvertConsts {
+			changed = changed || gatherMulTerms(n)
+			// fmt.Printf("GTH:  %v\n", n)
+			changed = changed || groupMulTerms(n)
+			// fmt.Printf("GRP:  %v\n", n)
+		} else {
+			changed = changed || gatherMulTermsF(n)
+			// fmt.Printf("GTH:  %v\n", n)
+			changed = changed || groupMulTermsF(n)
+			// fmt.Printf("GRP:  %v\n", n)
+		}
 		n.Sort()
 		// fmt.Printf("SRT:  %v\n", n)
 	}
@@ -720,7 +729,7 @@ func gatherMulTerms(n *Mul) (changed bool) {
 			neg := e.(*Neg)
 			if !hasCoeff {
 				mul := NewMul()
-				mul.Insert(NewConstant(-1))
+				mul.Insert(NewConstantF(-1))
 				mul.Insert(neg.C)
 				neg.C = nil
 				terms = append(terms, mul)
@@ -813,7 +822,6 @@ func groupAddTerms(n *Add) (changed bool) {
 			// cF(x) +  F(x)
 			//  F(x) + cF(x)
 			if x.AmIAlmostSame(y) || y.AmIAlmostSame(x) { // both directions ensures Mul.AmIAlmostSame()... with only one FAIL on F(x) + cF(x)
-				// fmt.Printf("GOT HERE!!!\n")
 				same = true
 				terms[j] = nil
 			}
@@ -866,6 +874,408 @@ func groupAddTerms(n *Add) (changed bool) {
 
 // group like terms in a multiplication
 func groupMulTerms(m *Mul) (changed bool) {
+	terms := m.CS
+	L := len(terms)
+	hasConst := false
+	var coeff *ConstantF = nil
+
+	for i, x := range terms {
+		if x == nil {
+			continue
+		}
+
+		// setting up current term
+		powSum := 1.0
+
+		xT := x.ExprType()
+		if xT == CONSTANT && !hasConst {
+			hasConst = true
+		}
+
+		if xT == CONSTANTF {
+			if coeff == nil {
+				coeff = x.(*ConstantF)
+			} else {
+				coeff.F *= x.(*ConstantF).F
+				terms[i] = nil
+				continue
+			}
+		}
+
+		var xC Expr
+		xTb := NULL
+		switch xT {
+		case NEG:
+			xC = x.(*Neg).C
+			xTb = xC.ExprType()
+		case POWI:
+			p := x.(*PowI)
+			xC = p.Base
+			xTb = p.Base.ExprType()
+			powSum = float64(p.Power)
+		case POWF:
+			p := x.(*PowF)
+			xC = p.Base
+			xTb = p.Base.ExprType()
+			powSum = p.Power
+		}
+
+		for j := i + 1; j < L; j++ {
+			y := terms[j]
+			if y == nil {
+				continue
+			}
+
+			// setting up following term(s)
+			powY := 1.0
+			yT := y.ExprType()
+			if yT == CONSTANT && !hasConst {
+				hasConst = true
+			}
+
+			if yT == CONSTANTF {
+				if coeff == nil {
+					coeff = y.(*ConstantF)
+				} else {
+					coeff.F *= y.(*ConstantF).F
+					terms[j] = nil
+					continue
+				}
+			}
+
+			var yC Expr
+			yTb := NULL
+			switch yT {
+			case NEG:
+				yC = y.(*Neg).C
+				yTb = yC.ExprType()
+			case POWI:
+				p := y.(*PowI)
+				yC = p.Base
+				yTb = p.Base.ExprType()
+				powY = float64(p.Power)
+			case POWF:
+				p := y.(*PowF)
+				yC = p.Base
+				yTb = p.Base.ExprType()
+				powY = p.Power
+			}
+
+			// This is the actual comparison Code
+			same := false
+			if xT == yT {
+				if x.AmISame(y) {
+					same = true
+					powSum += powY
+				}
+			} else if xTb == yT {
+				if xC.AmISame(y) {
+					same = true
+					powSum += powY
+				}
+			} else if xT == yTb {
+				if x.AmISame(yC) {
+					same = true
+					powSum += powY
+				}
+			} else if xTb == yTb && xTb != NULL {
+				if xC.AmISame(yC) {
+					same = true
+					powSum += powY
+				}
+			}
+
+			// Check the results of camparison update the terms
+			if same {
+				terms[j] = nil
+				changed = true
+				if powSum == 0 {
+					terms[i] = nil // remove the lhs term
+				} else if powSum == 1 {
+					// what is lhs?
+					// if PowI || Neg || ? :: then extract Base
+					if xTb != NULL {
+						switch xT {
+						case NEG:
+							terms[i] = x.(*Neg).C
+						case POWI:
+							terms[i] = x.(*PowI).Base
+						case POWF:
+							terms[i] = x.(*PowF).Base
+						}
+					}
+				} else {
+					// whole or fractional power?
+					flr := math.Floor(powSum)
+					dim := math.Dim(powSum, flr)
+					if dim == 0 {
+						// whole power
+						base := x
+						if xT != POWI {
+							if xTb != NULL {
+								switch xT {
+								case NEG:
+									base = x.(*Neg).C
+								case POWF:
+									base = x.(*PowF).Base
+								}
+							}
+							base = NewPowI(base, int(powSum))
+						} else {
+							base.(*PowI).Power = int(powSum)
+						}
+						terms[i] = base
+					} else {
+						// fractional power
+						base := x
+						if xT != POWF {
+							if xTb != NULL {
+								switch xT {
+								case NEG:
+									base = x.(*Neg).C
+								case POWI:
+									base = x.(*PowI).Base
+								}
+							}
+							base = NewPowF(base, powSum)
+						} else {
+							base.(*PowF).Power = powSum
+						}
+					}
+				}
+			}
+		}
+
+	}
+	return
+}
+
+// pulls recursive muls into the current mul
+func gatherMulTermsF(n *Mul) (changed bool) {
+	terms := make([]Expr, 0)
+	hasCoeff := false
+	var coeff *ConstantF = nil
+	hasDiv := -1
+	for i, e := range n.CS {
+		if e == nil {
+			continue
+		}
+		switch e.ExprType() {
+
+		case CONSTANT:
+			if !hasCoeff {
+				terms = append(terms, e)
+				hasCoeff = true
+			} else {
+				changed = true
+			}
+
+		case CONSTANTF:
+			// changed = true
+			if coeff == nil {
+				// hasCoeff = true
+				coeff = e.(*ConstantF)
+				terms = append(terms, e)
+				// terms = append(terms, NewConstant(-1))
+			} else {
+				coeff.F *= e.(*ConstantF).F
+			}
+			n.CS[i] = nil
+
+		case NEG:
+			changed = true
+			neg := e.(*Neg)
+			if !hasCoeff {
+				mul := NewMul()
+				mul.Insert(NewConstantF(-1))
+				mul.Insert(neg.C)
+				neg.C = nil
+				terms = append(terms, mul)
+				hasCoeff = true
+			} else {
+				terms = append(terms, neg.C)
+				neg.C = nil
+			}
+
+		case DIV:
+			if hasDiv == -1 {
+				hasDiv = i // store the first div occurance
+			}
+			terms = append(terms, e)
+		case MUL:
+			changed = true
+			a := e.(*Mul)
+			leftAlignTerms(a.CS[:])
+			for j, E := range a.CS {
+				if E == nil {
+					continue
+				}
+				if e.ExprType() == CONSTANT {
+					if !hasCoeff {
+						hasCoeff = true
+						terms = append(terms, E)
+					}
+					a.CS[i] = nil
+				} else {
+					terms = append(terms, E)
+					a.CS[j] = nil
+				}
+			}
+			rem := leftAlignTerms(a.CS[:])
+			if rem == 0 {
+				n.CS[i] = nil
+			}
+			leftAlignTerms(terms)
+
+		default:
+			terms = append(terms, e)
+		}
+	}
+	n.CS = terms
+
+	if hasDiv > -1 && len(n.CS) > 1 {
+		changed = true
+		numer := NewMul()
+		denom := NewMul()
+		for i, e := range n.CS {
+			if e == nil {
+				continue
+			}
+			switch e.ExprType() {
+			case DIV:
+				d := e.(*Div)
+				numer.Insert(d.Numer)
+				denom.Insert(d.Denom)
+			// case POWI:
+			// case POWF:
+			default:
+				numer.Insert(e)
+			}
+			n.CS[i] = nil
+		}
+		n.Insert(NewDiv(numer, denom))
+	}
+	return changed
+}
+
+// group like terms in an addition
+func groupAddTermsF(n *Add) (changed bool) {
+	terms := n.CS
+	for i, x := range terms {
+		// fmt.Printf("TERMS:  %v\n", terms)
+		if x == nil {
+			continue
+		}
+		xT := x.ExprType()
+		same := false
+		sum := 1.0
+		if xT == MUL && x.(*Mul).CS[0].ExprType() == CONSTANTF {
+			sum = x.(*Mul).CS[0].(*ConstantF).F
+		} else if xT == NEG {
+			sum = -1.0
+		}
+		for j := i + 1; j < len(terms); j++ {
+			y := terms[j]
+			// fmt.Printf("%d-%d  %v  %v\n", i, j, x, y)
+			if y == nil {
+				continue
+			}
+			yT := y.ExprType()
+
+			//  F(x) +  F(x)
+			// cF(x) + dF(x)
+			// cF(x) +  F(x)
+			//  F(x) + cF(x)
+			if x.AmIAlmostSame(y) || y.AmIAlmostSame(x) { // both directions ensures Mul.AmIAlmostSame()... with only one FAIL on F(x) + cF(x)
+				if yT == MUL && y.(*Mul).CS[0].ExprType() == CONSTANTF {
+					sum += y.(*Mul).CS[0].(*ConstantF).F
+				} else {
+					sum += 1.0
+				}
+				same = true
+				terms[j] = nil
+			}
+
+			//  F(x) -  F(x)
+			// cF(x) - dF(x)
+			// cF(x) -  F(x)
+			//  F(x) - cF(x)
+			if xT == NEG {
+				// fmt.Printf("GOT HERE xT NEG\n")
+				c := x.(*Neg).C
+				if y.AmIAlmostSame(c) {
+					// fmt.Printf("GOT HERE xT NEG y almostSame\n")
+					if yT == MUL && y.(*Mul).CS[0].ExprType() == CONSTANTF {
+						sum += y.(*Mul).CS[0].(*ConstantF).F
+					} else {
+						sum += 1.0
+					}
+					same = true
+					terms[j] = nil
+				}
+			}
+			if yT == NEG {
+				c := y.(*Neg).C
+				if x.AmIAlmostSame(c) {
+					if c.ExprType() == MUL && c.(*Mul).CS[0].ExprType() == CONSTANTF {
+						sum -= c.(*Mul).CS[0].(*ConstantF).F
+					} else {
+						sum -= 1.0
+					}
+					same = true
+					terms[j] = nil
+				}
+			}
+
+		}
+		if same {
+			changed = true
+			// fmt.Printf("sum = %v\n", sum)
+			// fmt.Printf("groupAddTerms: %v\n", terms)
+			if sum == 0.0 {
+				terms[i] = NewConstantF(sum)
+				continue
+			} else if sum == 1.0 {
+				if xT == NEG {
+					terms[i] = x.(*Neg).C
+				}
+				continue
+			} else if sum == -1.0 {
+				if xT != NEG {
+					terms[i] = NewNeg(x)
+				}
+				continue
+			} else {
+
+				// extract x.C if neg
+				if xT == NEG {
+					// fmt.Printf("xT is NEG\n")
+					x = x.(*Neg).C
+					xT = x.ExprType()
+				}
+				if xT == MUL {
+					// fmt.Printf("xT is MUL\n")
+					mul := x.(*Mul)
+					if !(mul.CS[0].ExprType() == CONSTANTF) {
+						mul.Insert(NewConstantF(sum))
+					} else {
+						mul.CS[0].(*ConstantF).F = sum
+					}
+				} else {
+					mul := NewMul()
+					mul.Insert(NewConstantF(sum))
+					mul.Insert(x)
+					terms[i] = mul
+				}
+			}
+		}
+
+	}
+	return
+}
+
+// group like terms in a multiplication
+func groupMulTermsF(m *Mul) (changed bool) {
 	terms := m.CS
 	L := len(terms)
 	hasConst := false
