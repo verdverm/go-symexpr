@@ -297,6 +297,9 @@ func (u *PowI) Simplify(rules SimpRules) Expr {
 		// fmt.Printf("PowI-presort:  %v   %v\n", u.Base, serial)
 
 		u.Base = u.Base.Simplify(rules)
+		if u.Base == nil {
+			return nil
+		}
 
 		// serial2 := make([]int, 0, 64)
 		// serial2 = u.Base.Serial(serial2)
@@ -415,11 +418,15 @@ func (n *Div) Simplify(rules SimpRules) Expr {
 	)
 	if n.Numer != nil {
 		n.Numer = n.Numer.Simplify(rules)
-		t1 = n.Numer.ExprType()
+		if n.Numer != nil {
+			t1 = n.Numer.ExprType()
+		}
 	}
 	if n.Denom != nil {
 		n.Denom = n.Denom.Simplify(rules)
-		t2 = n.Denom.ExprType()
+		if n.Denom != nil {
+			t2 = n.Denom.ExprType()
+		}
 	}
 
 	// check to see if nulls/nils
