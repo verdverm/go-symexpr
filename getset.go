@@ -87,6 +87,10 @@ func (u *Neg) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 		return true, false
 	}
 	(*pos)--
+	if *pos == 0 {
+		u.C = e
+		return false, true
+	}
 	rme, repd := u.C.SetExpr(pos, e)
 	if repd {
 		return false, true
@@ -110,6 +114,10 @@ func (u *Abs) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 		return true, false
 	}
 	(*pos)--
+	if *pos == 0 {
+		u.C = e
+		return false, true
+	}
 	rme, repd := u.C.SetExpr(pos, e)
 	if repd {
 		return false, true
@@ -133,6 +141,10 @@ func (u *Sqrt) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 		return true, false
 	}
 	(*pos)--
+	if *pos == 0 {
+		u.C = e
+		return false, true
+	}
 	rme, repd := u.C.SetExpr(pos, e)
 	if repd {
 		return false, true
@@ -156,6 +168,10 @@ func (u *Sin) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 		return true, false
 	}
 	(*pos)--
+	if *pos == 0 {
+		u.C = e
+		return false, true
+	}
 	rme, repd := u.C.SetExpr(pos, e)
 	if repd {
 		return false, true
@@ -179,6 +195,10 @@ func (u *Cos) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 		return true, false
 	}
 	(*pos)--
+	if *pos == 0 {
+		u.C = e
+		return false, true
+	}
 	rme, repd := u.C.SetExpr(pos, e)
 	if repd {
 		return false, true
@@ -202,6 +222,10 @@ func (u *Tan) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 		return true, false
 	}
 	(*pos)--
+	if *pos == 0 {
+		u.C = e
+		return false, true
+	}
 	rme, repd := u.C.SetExpr(pos, e)
 	if repd {
 		return false, true
@@ -328,6 +352,10 @@ func (u *Exp) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 		return true, false
 	}
 	(*pos)--
+	if *pos == 0 {
+		u.C = e
+		return false, true
+	}
 	rme, repd := u.C.SetExpr(pos, e)
 	if repd {
 		return false, true
@@ -343,6 +371,10 @@ func (u *Log) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 		return true, false
 	}
 	(*pos)--
+	if *pos == 0 {
+		u.C = e
+		return false, true
+	}
 	rme, repd := u.C.SetExpr(pos, e)
 	if repd {
 		return false, true
@@ -358,6 +390,10 @@ func (u *PowI) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 		return true, false
 	}
 	(*pos)--
+	if *pos == 0 {
+		u.C = e
+		return false, true
+	}
 	rme, repd := u.Base.SetExpr(pos, e)
 	if repd {
 		return false, true
@@ -373,6 +409,10 @@ func (u *PowF) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 		return true, false
 	}
 	(*pos)--
+	if *pos == 0 {
+		u.C = e
+		return false, true
+	}
 	rme, repd := u.Base.SetExpr(pos, e)
 	if repd {
 		return false, true
