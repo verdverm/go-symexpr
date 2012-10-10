@@ -480,12 +480,20 @@ func (n *Div) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 		return true, false
 	}
 	(*pos)--
+	if *pos == 0 {
+		n.Numer = e
+		return false, true
+	}
 	rme, repd := n.Numer.SetExpr(pos, e)
 	if repd {
 		return false, true
 	}
 	if rme {
 		n.Numer = e
+		return false, true
+	}
+	if *pos == 0 {
+		n.Denom = e
 		return false, true
 	}
 	rme, repd = n.Denom.SetExpr(pos, e)
@@ -503,11 +511,19 @@ func (n *PowE) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 		return true, false
 	}
 	(*pos)--
+	if *pos == 0 {
+		n.Base = e
+		return false, true
+	}
 	rme, repd := n.Base.SetExpr(pos, e)
 	if repd {
 		return false, true
 	}
 	if rme {
+		n.Power = e
+		return false, true
+	}
+	if *pos == 0 {
 		n.Power = e
 		return false, true
 	}
