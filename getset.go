@@ -402,7 +402,10 @@ func (n *Add) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 			n.CS[i] = e
 			return false, true
 		}
-		//     if *pos < 0 { return nil }
+	}
+	if *pos == 0 {
+		n.CS = append(n.CS, e)
+		return false, true
 	}
 	return false, repd
 }
@@ -425,7 +428,10 @@ func (n *Mul) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 			n.CS[i] = e
 			return false, true
 		}
-		//     if *pos < 0 { return nil }
+	}
+	if *pos == 0 {
+		n.CS = append(n.CS, e)
+		return false, true
 	}
 	return false, repd
 }
