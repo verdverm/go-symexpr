@@ -391,7 +391,7 @@ func (u *PowI) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 	}
 	(*pos)--
 	if *pos == 0 {
-		u.C = e
+		u.Base = e
 		return false, true
 	}
 	rme, repd := u.Base.SetExpr(pos, e)
@@ -410,7 +410,7 @@ func (u *PowF) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 	}
 	(*pos)--
 	if *pos == 0 {
-		u.C = e
+		u.Base = e
 		return false, true
 	}
 	rme, repd := u.Base.SetExpr(pos, e)
