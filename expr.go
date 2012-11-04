@@ -111,6 +111,9 @@ type Expr interface {
 	PrettyPrint(dnames, snames []string, cvals []float64) string
 	// 	WriteString( buf *bytes.Buffer )
 
+	// Similar to PrettyPrint, but in latex format
+	Latex(dnames, snames []string, cvals []float64) string
+
 	// eval.go
 	// Evaluates an expression at one point
 	// t is a time value
@@ -199,6 +202,7 @@ func (n *Null) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 func (n *Null) String() string                                              { return "NULL" }
 func (n *Null) Serial(sofar []int) []int                                    { return append(sofar, int(NULL)) }
 func (n *Null) PrettyPrint(dnames, snames []string, cvals []float64) string { return "NULL" }
+func (n *Null) Latex(dnames, snames []string, cvals []float64) string       { return "NULL" }
 
 func (n *Null) Eval(t float64, x, c, s []float64) float64 { return math.NaN() }
 

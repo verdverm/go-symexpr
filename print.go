@@ -5,6 +5,7 @@ import "fmt"
 func (n *Time) String() string                                              { return "T" }
 func (t *Time) Serial(sofar []int) []int                                    { return append(sofar, int(TIME)) }
 func (t *Time) PrettyPrint(dnames, snames []string, cvals []float64) string { return "T" }
+func (t *Time) Latex(dnames, snames []string, cvals []float64) string       { return "T" }
 
 func (v *Var) String() string           { return "X_" + fmt.Sprint(v.P) }
 func (v *Var) Serial(sofar []int) []int { return append(sofar, int(v.P)+int(STARTVAR)) }
@@ -13,6 +14,9 @@ func (v *Var) PrettyPrint(dnames, snames []string, cvals []float64) string {
 		return v.String()
 	}
 	return dnames[v.P]
+}
+func (v *Var) Latex(dnames, snames []string, cvals []float64) string {
+	return v.PrettyPrint(dnames, snames, cvals)
 }
 
 func (c *Constant) String() string { return "C_" + fmt.Sprint(c.P) }
@@ -27,11 +31,17 @@ func (c *Constant) PrettyPrint(dnames, snames []string, cvals []float64) string 
 	}
 	return fmt.Sprintf("%.6f", cvals[c.P])
 }
+func (c *Constant) Latex(dnames, snames []string, cvals []float64) string {
+	return c.PrettyPrint(dnames, snames, cvals)
+}
 
 func (c *ConstantF) String() string           { return fmt.Sprintf("%.4e", c.F) }
 func (c *ConstantF) Serial(sofar []int) []int { return append(sofar, int(CONSTANTF)) } // hmm floats???
 // ( we don't output the index since it is unimportant and can be altered )
 func (c *ConstantF) PrettyPrint(dnames, snames []string, cvals []float64) string {
+	return c.String()
+}
+func (c *ConstantF) Latex(dnames, snames []string, cvals []float64) string {
 	return c.String()
 }
 
@@ -45,6 +55,9 @@ func (s *System) PrettyPrint(dnames, snames []string, cvals []float64) string {
 		return s.String()
 	}
 	return snames[s.P]
+}
+func (s *System) Latex(dnames, snames []string, cvals []float64) string {
+	return s.PrettyPrint(dnames, snames, cvals)
 }
 
 func (u *Neg) String() string {
@@ -60,6 +73,9 @@ func (u *Neg) Serial(sofar []int) []int {
 func (u *Neg) PrettyPrint(dnames, snames []string, cvals []float64) string {
 	return "-(" + u.C.PrettyPrint(dnames, snames, cvals) + ")"
 }
+func (u *Neg) Latex(dnames, snames []string, cvals []float64) string {
+	return "-(" + u.C.Latex(dnames, snames, cvals) + ")"
+}
 
 func (u *Abs) String() string {
 	if u.C == nil {
@@ -73,6 +89,9 @@ func (u *Abs) Serial(sofar []int) []int {
 }
 func (u *Abs) PrettyPrint(dnames, snames []string, cvals []float64) string {
 	return "abs(" + u.C.PrettyPrint(dnames, snames, cvals) + ")"
+}
+func (u *Abs) Latex(dnames, snames []string, cvals []float64) string {
+	return "abs(" + u.C.Latex(dnames, snames, cvals) + ")"
 }
 
 func (u *Sqrt) String() string {
@@ -88,6 +107,9 @@ func (u *Sqrt) Serial(sofar []int) []int {
 func (u *Sqrt) PrettyPrint(dnames, snames []string, cvals []float64) string {
 	return "sqrt(" + u.C.PrettyPrint(dnames, snames, cvals) + ")"
 }
+func (u *Sqrt) Latex(dnames, snames []string, cvals []float64) string {
+	return "\\sqrt{" + u.C.Latex(dnames, snames, cvals) + "}"
+}
 
 func (u *Sin) String() string {
 	if u.C == nil {
@@ -101,6 +123,9 @@ func (u *Sin) Serial(sofar []int) []int {
 }
 func (u *Sin) PrettyPrint(dnames, snames []string, cvals []float64) string {
 	return "sin(" + u.C.PrettyPrint(dnames, snames, cvals) + ")"
+}
+func (u *Sin) Latex(dnames, snames []string, cvals []float64) string {
+	return "\\sin(" + u.C.Latex(dnames, snames, cvals) + ")"
 }
 
 func (u *Cos) String() string {
@@ -116,6 +141,9 @@ func (u *Cos) Serial(sofar []int) []int {
 func (u *Cos) PrettyPrint(dnames, snames []string, cvals []float64) string {
 	return "cos(" + u.C.PrettyPrint(dnames, snames, cvals) + ")"
 }
+func (u *Cos) Latex(dnames, snames []string, cvals []float64) string {
+	return "\\cos(" + u.C.Latex(dnames, snames, cvals) + ")"
+}
 
 func (u *Tan) String() string {
 	if u.C == nil {
@@ -129,6 +157,9 @@ func (u *Tan) Serial(sofar []int) []int {
 }
 func (u *Tan) PrettyPrint(dnames, snames []string, cvals []float64) string {
 	return "tan(" + u.C.PrettyPrint(dnames, snames, cvals) + ")"
+}
+func (u *Tan) Latex(dnames, snames []string, cvals []float64) string {
+	return "\\tan(" + u.C.Latex(dnames, snames, cvals) + ")"
 }
 
 func (u *Exp) String() string {
@@ -144,6 +175,9 @@ func (u *Exp) Serial(sofar []int) []int {
 func (u *Exp) PrettyPrint(dnames, snames []string, cvals []float64) string {
 	return "exp(" + u.C.PrettyPrint(dnames, snames, cvals) + ")"
 }
+func (u *Exp) Latex(dnames, snames []string, cvals []float64) string {
+	return "\\exp(" + u.C.Latex(dnames, snames, cvals) + ")"
+}
 
 func (u *Log) String() string {
 	if u.C == nil {
@@ -157,6 +191,9 @@ func (u *Log) Serial(sofar []int) []int {
 }
 func (u *Log) PrettyPrint(dnames, snames []string, cvals []float64) string {
 	return "ln(" + u.C.PrettyPrint(dnames, snames, cvals) + ")"
+}
+func (u *Log) Latex(dnames, snames []string, cvals []float64) string {
+	return "\\log(" + u.C.Latex(dnames, snames, cvals) + ")"
 }
 
 func (u *PowI) String() string {
@@ -173,6 +210,9 @@ func (u *PowI) Serial(sofar []int) []int {
 func (u *PowI) PrettyPrint(dnames, snames []string, cvals []float64) string {
 	return "(" + u.Base.PrettyPrint(dnames, snames, cvals) + ")^" + fmt.Sprint(u.Power)
 }
+func (u *PowI) Latex(dnames, snames []string, cvals []float64) string {
+	return "(" + u.Base.Latex(dnames, snames, cvals) + ")^{" + fmt.Sprint(u.Power) + "}"
+}
 
 func (u *PowF) String() string {
 	if u.Base == nil {
@@ -187,13 +227,16 @@ func (u *PowF) Serial(sofar []int) []int {
 func (u *PowF) PrettyPrint(dnames, snames []string, cvals []float64) string {
 	return "(" + u.Base.PrettyPrint(dnames, snames, cvals) + ")^" + fmt.Sprint(u.Power)
 }
+func (u *PowF) Latex(dnames, snames []string, cvals []float64) string {
+	return "(" + u.Base.Latex(dnames, snames, cvals) + ")^{" + fmt.Sprint(u.Power) + "}"
+}
 
 func (n *PowE) String() string {
 	var str string
 	if n.Base == nil {
 		str += "{nil}^"
 	} else {
-		str += "{" + n.Base.String() + "}^"
+		str += "(" + n.Base.String() + ")^"
 	}
 	if n.Power == nil {
 		str += "(nil)"
@@ -208,7 +251,10 @@ func (n *PowE) Serial(sofar []int) []int {
 	return n.Power.Serial(sofar)
 }
 func (u *PowE) PrettyPrint(dnames, snames []string, cvals []float64) string {
-	return "{" + u.Base.PrettyPrint(dnames, snames, cvals) + "}^(" + u.Power.PrettyPrint(dnames, snames, cvals) + ")"
+	return "(" + u.Base.PrettyPrint(dnames, snames, cvals) + ")^{" + u.Power.PrettyPrint(dnames, snames, cvals) + "}"
+}
+func (u *PowE) Latex(dnames, snames []string, cvals []float64) string {
+	return "(" + u.Base.Latex(dnames, snames, cvals) + ")^{" + u.Power.Latex(dnames, snames, cvals) + "}"
 }
 
 func (n *Div) String() string {
@@ -219,7 +265,7 @@ func (n *Div) String() string {
 	if n.Denom != nil {
 		dstr = n.Denom.String()
 	}
-	return "{ " + nstr + " }//{ " + dstr + " }"
+	return "{ " + nstr + " }/{ " + dstr + " }"
 }
 func (n *Div) Serial(sofar []int) []int {
 	sofar = append(sofar, int(DIV))
@@ -227,7 +273,10 @@ func (n *Div) Serial(sofar []int) []int {
 	return n.Denom.Serial(sofar)
 }
 func (u *Div) PrettyPrint(dnames, snames []string, cvals []float64) string {
-	return "{" + u.Numer.PrettyPrint(dnames, snames, cvals) + "}//{" + u.Denom.PrettyPrint(dnames, snames, cvals) + "}"
+	return "{" + u.Numer.PrettyPrint(dnames, snames, cvals) + "}/{" + u.Denom.PrettyPrint(dnames, snames, cvals) + "}"
+}
+func (u *Div) Latex(dnames, snames []string, cvals []float64) string {
+	return "\\frac{" + u.Numer.Latex(dnames, snames, cvals) + "}{" + u.Denom.Latex(dnames, snames, cvals) + "}"
 }
 
 func (n *Add) String() string {
@@ -275,6 +324,17 @@ func (n *Add) PrettyPrint(dnames, snames []string, cvals []float64) string {
 	str += " )"
 	return str
 }
+func (n *Add) Latex(dnames, snames []string, cvals []float64) string {
+	str := "( " + n.CS[0].Latex(dnames, snames, cvals)
+	for i := 1; i < len(n.CS); i++ {
+		if n.CS[i] == nil {
+			continue
+		}
+		str += " + " + n.CS[i].Latex(dnames, snames, cvals)
+	}
+	str += " )"
+	return str
+}
 
 func (n *Mul) String() string {
 	var str string
@@ -315,6 +375,16 @@ func (n *Mul) PrettyPrint(dnames, snames []string, cvals []float64) string {
 			continue
 		}
 		str += "*" + n.CS[i].PrettyPrint(dnames, snames, cvals)
+	}
+	return str
+}
+func (n *Mul) Latex(dnames, snames []string, cvals []float64) string {
+	str := n.CS[0].Latex(dnames, snames, cvals)
+	for i := 1; i < len(n.CS); i++ {
+		if n.CS[i] == nil {
+			continue
+		}
+		str += "*" + n.CS[i].Latex(dnames, snames, cvals)
 	}
 	return str
 }
