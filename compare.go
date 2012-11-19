@@ -300,7 +300,13 @@ func (n *Div) AmISame(r Expr) bool {
 func (n *Div) AmIAlmostSame(r Expr) bool {
 	return r.ExprType() == DIV && n.Numer.AmIAlmostSame(r.(*Div).Numer) && n.Denom.AmIAlmostSame(r.(*Div).Denom)
 }
-func (n *Div) Sort() { n.Numer.Sort(); n.Denom.Sort() }
+func (n *Div) Sort() {
+	// if n.Numer == nil {
+
+	// } 
+	n.Numer.Sort()
+	n.Denom.Sort()
+}
 
 func (n *Add) AmILess(r Expr) bool {
 	if ADD < r.ExprType() {

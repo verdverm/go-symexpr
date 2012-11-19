@@ -3,7 +3,7 @@ package symexpr
 import (
 	"math"
 
-	// "fmt"
+	"fmt"
 )
 
 type SimpRules struct {
@@ -362,18 +362,29 @@ func (u *PowF) Simplify(rules SimpRules) Expr {
 	)
 	if u.Base != nil {
 		u.Base = u.Base.Simplify(rules)
+		if u.Base == nil {
+			return nil
+		}
 		t = u.Base.ExprType()
 	}
-	switch t {
-	case NULL, CONSTANT:
+
+	if u.Power == 0 {
+		ret = &ConstantF{F: 1}
+	} else if u.Power == 1 {
 		ret = u.Base
 		u.Base = nil
-	case CONSTANTF:
-		ret = u.Base
-		u.Base = nil
-		ret.(*ConstantF).F = math.Pow(ret.(*ConstantF).F, float64(u.Power))
-	default: // no simplification
-		ret = u
+	} else {
+		switch t {
+		case NULL, CONSTANT:
+			ret = u.Base
+			u.Base = nil
+		case CONSTANTF:
+			ret = u.Base
+			u.Base = nil
+			ret.(*ConstantF).F = math.Pow(ret.(*ConstantF).F, float64(u.Power))
+		default: // no simplification
+			ret = u
+		}
 	}
 	return ret
 }
@@ -491,6 +502,7 @@ func (n *Div) Simplify(rules SimpRules) Expr {
 		t2 = n.Denom.ExprType()
 	}
 
+	// cancel / simp like terms
 	if t1 == t2 && t1 == CONSTANT {
 		ret = n.Numer
 		n.Numer = nil
@@ -503,19 +515,271 @@ func (n *Div) Simplify(rules SimpRules) Expr {
 			n.Denom = d.Simplify(rules)
 		}
 		return ret
-	} else if t2 == CONSTANT {
-		ret = n.Numer
-		n.Numer = nil
-		n.Denom = nil
-		return ret
-	} else if t1 == t2 && t1 == MUL {
-		mn := n.Numer.(*Mul)
-		md := n.Denom.(*Mul)
-		if mn.CS[0].ExprType() == CONSTANT && md.CS[0].ExprType() == CONSTANT {
-			md.CS[0] = nil
-			n.Denom = md.Simplify(rules)
+	} else if t2 == CONSTANT && t1 == MUL {
+		d := n.Numer.(*Mul)
+		if d.CS[0].ExprType() == CONSTANT {
+			ret = n.Numer
+			n.Numer = nil
+			n.Denom = nil
+			return ret
 		}
-		return ret
+		return n
+	} else {
+		ret = n.cancelLikeTerms(rules)
+	}
+
+	return ret
+}
+
+func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
+
+	t1 := D.Numer.ExprType()
+	t2 := D.Denom.ExprType()
+	var ret Expr = D
+
+	// fmt.Println("cancel", t1, t2)
+
+	if D.Numer.AmISame(D.Denom) {
+		return NewConstant(-1)
+	}
+
+	changed := false
+	if t1 == t2 && t1 == MUL {
+		mn := D.Numer.(*Mul)
+		md := D.Denom.(*Mul)
+		for i, n := range mn.CS {
+			if n == nil {
+				continue
+			}
+			for j, d := range md.CS {
+				if d == nil {
+					continue
+				}
+				fmt.Println("cancel", i, n.ExprType(), j, d.ExprType())
+
+				if n.AmISame(d) {
+					mn.CS[i] = nil
+					md.CS[j] = nil
+					changed = true
+					break
+				}
+				if n.ExprType() == POWF && d.ExprType() == POWF {
+					np, dp := n.(*PowF), d.(*PowF)
+					if np.Base.AmISame(dp.Base) {
+						if np.Power > dp.Power {
+							np.Power -= dp.Power
+							md.CS[j] = nil
+							changed = true
+							continue
+						} else if np.Power < dp.Power {
+							dp.Power -= np.Power
+							mn.CS[i] = nil
+							changed = true
+							break
+						} else { // same and should cancel
+							mn.CS[i] = nil
+							md.CS[j] = nil
+							changed = true
+							break
+						}
+					}
+				} else if n.ExprType() == POWF {
+					np := n.(*PowF)
+					if np.Base.AmISame(d) {
+						np.Power -= 1
+						md.CS[j] = nil
+						changed = true
+						continue
+					}
+				} else if d.ExprType() == POWF {
+					nd := d.(*PowF)
+					if nd.Base.AmISame(n) {
+						nd.Power -= 1
+						mn.CS[i] = nil
+						changed = true
+						break
+					}
+				}
+
+			}
+
+		}
+	} else if t1 == MUL {
+		if D.Numer.AmIAlmostSame(D.Denom) {
+			return NewConstant(-1)
+		}
+		mn := D.Numer.(*Mul)
+		d := D.Denom
+		for i, n := range mn.CS {
+			if n.AmISame(d) {
+				mn.CS[i] = nil
+				D.Denom = nil
+				changed = true
+				break
+			}
+			if n.ExprType() == POWF && d.ExprType() == POWF {
+				np, dp := n.(*PowF), d.(*PowF)
+				if np.Base.AmISame(dp.Base) {
+					if np.Power > dp.Power {
+						np.Power -= dp.Power
+						D.Denom = nil
+						changed = true
+						break
+					} else if np.Power < dp.Power {
+						dp.Power -= np.Power
+						mn.CS[i] = nil
+						changed = true
+						break
+					} else { // same and should cancel
+						// will we even get here?
+						mn.CS[i] = nil
+						D.Denom = nil
+						changed = true
+						break
+					}
+				}
+			} else if n.ExprType() == POWF {
+				np := n.(*PowF)
+				if np.Base.AmISame(d) {
+					np.Power -= 1
+					D.Denom = nil
+					changed = true
+					break
+				}
+			} else if d.ExprType() == POWF {
+				nd := d.(*PowF)
+				if nd.Base.AmISame(n) {
+					nd.Power -= 1
+					mn.CS[i] = nil
+					changed = true
+					break
+				}
+			}
+		}
+	} else if t2 == MUL {
+		if D.Denom.AmIAlmostSame(D.Numer) {
+			return NewConstant(-1)
+		}
+		n := D.Numer
+		md := D.Denom.(*Mul)
+		for i, d := range md.CS {
+			if n.AmISame(d) {
+				D.Numer = NewConstant(-1)
+				md.CS[i] = nil
+				changed = true
+				break
+			}
+			if n.ExprType() == POWF && d.ExprType() == POWF {
+				np, dp := n.(*PowF), d.(*PowF)
+				if np.Base.AmISame(dp.Base) {
+					if np.Power > dp.Power {
+						np.Power -= dp.Power
+						md.CS[i] = nil
+						changed = true
+						break
+					} else if np.Power < dp.Power {
+						dp.Power -= np.Power
+						D.Numer = NewConstant(-1)
+						changed = true
+						break
+					} else { // same and should cancel
+						// will we even get here?
+						D.Numer = nil
+						md.CS[i] = nil
+						changed = true
+						break
+					}
+				}
+			} else if n.ExprType() == POWF {
+				np := n.(*PowF)
+				if np.Base.AmISame(d) {
+					np.Power -= 1
+					md.CS[i] = nil
+					changed = true
+					break
+				}
+			} else if d.ExprType() == POWF {
+				nd := d.(*PowF)
+				if nd.Base.AmISame(n) {
+					nd.Power -= 1
+					D.Numer = NewConstant(-1)
+					changed = true
+					break
+				}
+			}
+		}
+	} else {
+		n, d := D.Numer, D.Denom
+		if n.AmISame(d) {
+			D.Numer = NewConstantF(1.0)
+			D.Denom = nil
+			changed = true
+		} else if n.ExprType() == POWF && d.ExprType() == POWF {
+			fmt.Println("Got Here 1")
+			np, dp := n.(*PowF), d.(*PowF)
+			if np.Base.AmISame(dp.Base) {
+				if np.Power > dp.Power {
+					np.Power -= dp.Power
+					D.Denom = nil
+					changed = true
+				} else if np.Power < dp.Power {
+					dp.Power -= np.Power
+					D.Numer = NewConstant(-1)
+					changed = true
+				} else { // same and should cancel
+					// will we even get here?
+					D.Numer = NewConstantF(1.0)
+					D.Denom = nil
+					changed = true
+				}
+			}
+		} else if n.ExprType() == POWF {
+			fmt.Println("Got Here 2")
+			np := n.(*PowF)
+			if np.Base.AmISame(d) {
+				np.Power -= 1
+				D.Denom = nil
+				changed = true
+			}
+		} else if d.ExprType() == POWF {
+			fmt.Println("Got Here 3")
+			nd := d.(*PowF)
+			if nd.Base.AmISame(n) {
+				nd.Power -= 1
+				D.Numer = NewConstant(-1)
+				changed = true
+			}
+		}
+	}
+
+	if changed {
+		t1, t2 = NULL, NULL
+		if D.Numer != nil {
+			D.Numer = D.Numer.Simplify(rules)
+			if D.Numer != nil {
+				t1 = D.Numer.ExprType()
+			}
+		}
+		if D.Denom != nil {
+			D.Denom = D.Denom.Simplify(rules)
+			if D.Denom != nil {
+				t2 = D.Denom.ExprType()
+			}
+		}
+
+		// check to see if nulls/nils
+		if t1 == NULL && t2 == NULL {
+			ret = nil
+		} else if t1 == NULL {
+			D.Numer = NewConstant(-1)
+			ret = D
+			return ret
+		} else if t2 == NULL {
+			ret = D.Numer
+			D.Numer = nil
+			D.Denom = nil
+			return ret
+		}
 	}
 
 	return ret

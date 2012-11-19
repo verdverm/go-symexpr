@@ -761,7 +761,7 @@ func Test_SimpMul(TEST *testing.T) {
 	md2m.Insert(NewVar(0))
 	md2div := NewDiv(md2m, NewVar(0))
 	md2.Insert(md2div)
-	md2_corr := md2div.Clone()
+	md2_corr := NewConstant(0)
 	md2_simp := md2div.Clone().Simplify(rules)
 	if !md2_simp.AmISame(md2_corr) {
 		TEST.Fatalf("FAIL MulVar: md2_simp != md2_corr  ~  %v -> %v  ==  %v", md2, md2_simp, md2_corr)
@@ -898,3 +898,434 @@ func Test_ConstantF(TEST *testing.T) {
 		fmt.Printf("XX simp: %v\n\n", XXs)
 	*/
 }
+
+func Test_Div(TEST *testing.T) {
+	fmt.Printf("Testing: Div Simps\n---------------------\n\n")
+	var rules = DefaultRules()
+	vnames := []string{"x", "y", "z"}
+	rules.ConvertConsts = false
+
+	/*****************************************/
+	/*****************************************/
+
+	f1 := parse("x / x", vnames)
+	f1_corr := NewConstant(-1)
+	f1_simp := f1.Clone().Simplify(rules)
+	if !f1_simp.AmISame(f1_corr) {
+		TEST.Fatalf("FAIL Div: f1_simp != f1_corr  ~  %v -> %v  ==  %v", f1, f1_simp, f1_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f1, f1_simp)
+		TEST.Logf("Div:  %v -> %v", f1, f1_simp)
+	}
+
+	f2 := parse("( 2 * x ) / x", vnames)
+	f2_corr := NewConstant(-1)
+	f2_simp := f2.Clone().Simplify(rules)
+	if !f2_simp.AmISame(f2_corr) {
+		TEST.Fatalf("FAIL Div: f2_simp != f2_corr  ~  %v -> %v  ==  %v", f2, f2_simp, f2_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f2, f2_simp)
+		TEST.Logf("Div:  %v -> %v", f2, f2_simp)
+	}
+
+	f3 := parse("x^2 / x", vnames)
+	f3_corr := parse("x", vnames)
+	f3_simp := f3.Clone().Simplify(rules)
+	if !f3_simp.AmISame(f3_corr) {
+		TEST.Fatalf("FAIL Div: f3_simp != f3_corr  ~  %v -> %v  ==  %v", f3, f3_simp, f3_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f3, f3_simp)
+		TEST.Logf("Div:  %v -> %v", f3, f3_simp)
+	}
+
+	f4 := parse("x^3 / x^2", vnames)
+	f4_corr := parse("x", vnames)
+	f4_simp := f4.Clone().Simplify(rules)
+	if !f4_simp.AmISame(f4_corr) {
+		TEST.Fatalf("FAIL Div: f4_simp != f4_corr  ~  %v -> %v  ==  %v", f4, f4_simp, f4_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f4, f4_simp)
+		TEST.Logf("Div:  %v -> %v", f4, f4_simp)
+	}
+
+	f5 := parse("x^4 / x^2", vnames)
+	f5_corr := parse("x^2", vnames)
+	f5_simp := f5.Clone().Simplify(rules)
+	if !f5_simp.AmISame(f5_corr) {
+		TEST.Fatalf("FAIL Div: f5_simp != f5_corr  ~  %v -> %v  ==  %v", f5, f5_simp, f5_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f5, f5_simp)
+		TEST.Logf("Div:  %v -> %v", f5, f5_simp)
+	}
+
+	f6 := parse("x / x^2", vnames)
+	f6_corr := NewDiv(NewConstant(-1), NewVar(0))
+	f6_simp := f6.Clone().Simplify(rules)
+	if !f6_simp.AmISame(f6_corr) {
+		TEST.Fatalf("FAIL Div: f6_simp != f6_corr  ~  %v -> %v  ==  %v", f6, f6_simp, f6_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f6, f6_simp)
+		TEST.Logf("Div:  %v -> %v", f6, f6_simp)
+	}
+
+	f7 := parse("x^2 / x^3", vnames)
+	f7_corr := NewDiv(NewConstant(-1), NewVar(0))
+	f7_simp := f7.Clone().Simplify(rules)
+	if !f7_simp.AmISame(f7_corr) {
+		TEST.Fatalf("FAIL Div: f7_simp != f7_corr  ~  %v -> %v  ==  %v", f7, f7_simp, f7_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f7, f7_simp)
+		TEST.Logf("Div:  %v -> %v", f7, f7_simp)
+	}
+
+	f8 := parse("x^2 / x^4", vnames)
+	f8_corr := NewDiv(NewConstant(-1), NewPowF(NewVar(0), 2.0))
+	f8_simp := f8.Clone().Simplify(rules)
+	if !f8_simp.AmISame(f8_corr) {
+		TEST.Fatalf("FAIL Div: f8_simp != f8_corr  ~  %v -> %v  ==  %v", f8, f8_simp, f8_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f8, f8_simp)
+		TEST.Logf("Div:  %v -> %v", f8, f8_simp)
+	}
+
+	/*****************************************/
+	/*****************************************/
+
+	f1_n := parse("(y * x) / x", vnames)
+	f1_n_corr := NewVar(1)
+	f1_n_simp := f1_n.Clone().Simplify(rules)
+	if !f1_n_simp.AmISame(f1_n_corr) {
+		TEST.Fatalf("FAIL Div: f1_n_simp != f1_n_corr  ~  %v -> %v  ==  %v", f1_n, f1_n_simp, f1_n_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f1_n, f1_n_simp)
+		TEST.Logf("Div:  %v -> %v", f1_n, f1_n_simp)
+	}
+
+	f2_n := parse("( 2 * x * y ) / x", vnames)
+	f2_n_corr := parse("2 * y", vnames)
+	f2_n_simp := f2_n.Clone().Simplify(rules)
+	if !f2_n_simp.AmISame(f2_n_corr) {
+		TEST.Fatalf("FAIL Div: f2_n_simp != f2_n_corr  ~  %v -> %v  ==  %v", f2_n, f2_n_simp, f2_n_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f2_n, f2_n_simp)
+		TEST.Logf("Div:  %v -> %v", f2_n, f2_n_simp)
+	}
+
+	f3_n := parse("( y * x^2 ) / x", vnames)
+	f3_n_corr := parse("y * x", vnames)
+	f3_n_simp := f3_n.Clone().Simplify(rules)
+	if !f3_n_simp.AmISame(f3_n_corr) {
+		TEST.Fatalf("FAIL Div: f3_n_simp != f3_n_corr  ~  %v -> %v  ==  %v", f3_n, f3_n_simp, f3_n_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f3_n, f3_n_simp)
+		TEST.Logf("Div:  %v -> %v", f3_n, f3_n_simp)
+	}
+
+	f4_n := parse("(y * x^3) / x^2", vnames)
+	f4_n_corr := parse("y * x", vnames)
+	f4_n_simp := f4_n.Clone().Simplify(rules)
+	if !f4_n_simp.AmISame(f4_n_corr) {
+		TEST.Fatalf("FAIL Div: f4_n_simp != f4_n_corr  ~  %v -> %v  ==  %v", f4_n, f4_n_simp, f4_n_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f4_n, f4_n_simp)
+		TEST.Logf("Div:  %v -> %v", f4_n, f4_n_simp)
+	}
+
+	f5_n := parse("(y * x^4) / x^2", vnames)
+	f5_n_corr := parse("y * x^2", vnames)
+	f5_n_simp := f5_n.Clone().Simplify(rules)
+	if !f5_n_simp.AmISame(f5_n_corr) {
+		TEST.Fatalf("FAIL Div: f5_n_simp != f5_n_corr  ~  %v -> %v  ==  %v", f5_n, f5_n_simp, f5_n_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f5_n, f5_n_simp)
+		TEST.Logf("Div:  %v -> %v", f5_n, f5_n_simp)
+	}
+
+	f6_n := parse("(y * x)/ x^2", vnames)
+	f6_n_corr := parse("y / x", vnames)
+	f6_n_simp := f6_n.Clone().Simplify(rules)
+	if !f6_n_simp.AmISame(f6_n_corr) {
+		TEST.Fatalf("FAIL Div: f6_n_simp != f6_n_corr  ~  %v -> %v  ==  %v", f6_n, f6_n_simp, f6_n_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f6_n, f6_n_simp)
+		TEST.Logf("Div:  %v -> %v", f6_n, f6_n_simp)
+	}
+
+	f7_n := parse("(y * x^2) / x^3", vnames)
+	f7_n_corr := parse("y / x", vnames)
+	f7_n_simp := f7_n.Clone().Simplify(rules)
+	if !f7_n_simp.AmISame(f7_n_corr) {
+		TEST.Fatalf("FAIL Div: f7_n_simp != f7_n_corr  ~  %v -> %v  ==  %v", f7_n, f7_n_simp, f7_n_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f7_n, f7_n_simp)
+		TEST.Logf("Div:  %v -> %v", f7_n, f7_n_simp)
+	}
+
+	f8_n := parse("(y * x^2) / x^4", vnames)
+	f8_n_corr := parse("y / x^2", vnames)
+	f8_n_simp := f8_n.Clone().Simplify(rules)
+	if !f8_n_simp.AmISame(f8_n_corr) {
+		TEST.Fatalf("FAIL Div: f8_n_simp != f8_n_corr  ~  %v -> %v  ==  %v", f8_n, f8_n_simp, f8_n_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f8_n, f8_n_simp)
+		TEST.Logf("Div:  %v -> %v", f8_n, f8_n_simp)
+	}
+
+	/*****************************************/
+	/*****************************************/
+
+	f1_d := parse("x / (x * y)", vnames)
+	f1_d_corr := NewDiv(NewConstant(-1), NewVar(1))
+	f1_d_simp := f1_d.Clone().Simplify(rules)
+	if !f1_d_simp.AmISame(f1_d_corr) {
+		TEST.Fatalf("FAIL Div: f1_d_simp != f1_d_corr  ~  %v -> %v  ==  %v", f1_d, f1_d_simp, f1_d_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f1_d, f1_d_simp)
+		TEST.Logf("Div:  %v -> %v", f1_d, f1_d_simp)
+	}
+
+	f2_d := parse("( 2 * x ) / (x * y)", vnames)
+	f2_d_corr := parse("2 / y", vnames)
+	f2_d_simp := f2_d.Clone().Simplify(rules)
+	if !f2_d_simp.AmISame(f2_d_corr) {
+		TEST.Fatalf("FAIL Div: f2_d_simp != f2_d_corr  ~  %v -> %v  ==  %v", f2_d, f2_d_simp, f2_d_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f2_d, f2_d_simp)
+		TEST.Logf("Div:  %v -> %v", f2_d, f2_d_simp)
+	}
+
+	f3_d := parse("x^2 / (x * y)", vnames)
+	f3_d_corr := parse("x / y", vnames)
+	f3_d_simp := f3_d.Clone().Simplify(rules)
+	if !f3_d_simp.AmISame(f3_d_corr) {
+		TEST.Fatalf("FAIL Div: f3_d_simp != f3_d_corr  ~  %v -> %v  ==  %v", f3_d, f3_d_simp, f3_d_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f3_d, f3_d_simp)
+		TEST.Logf("Div:  %v -> %v", f3_d, f3_d_simp)
+	}
+
+	f4_d := parse("x^3 / (x^2 * y)", vnames)
+	f4_d_corr := parse("x / y", vnames)
+	f4_d_simp := f4_d.Clone().Simplify(rules)
+	if !f4_d_simp.AmISame(f4_d_corr) {
+		TEST.Fatalf("FAIL Div: f4_d_simp != f4_d_corr  ~  %v -> %v  ==  %v", f4_d, f4_d_simp, f4_d_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f4_d, f4_d_simp)
+		TEST.Logf("Div:  %v -> %v", f4_d, f4_d_simp)
+	}
+
+	f5_d := parse("x^4 / (x^2 * y)", vnames)
+	f5_d_corr := parse("x^2 / y", vnames)
+	f5_d_simp := f5_d.Clone().Simplify(rules)
+	if !f5_d_simp.AmISame(f5_d_corr) {
+		TEST.Fatalf("FAIL Div: f5_d_simp != f5_d_corr  ~  %v -> %v  ==  %v", f5_d, f5_d_simp, f5_d_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f5_d, f5_d_simp)
+		TEST.Logf("Div:  %v -> %v", f5_d, f5_d_simp)
+	}
+
+	f6_d := parse("x / (x^2 * y)", vnames)
+	f6_d_denom := parse("x * y", vnames)
+	f6_d_corr := NewDiv(NewConstant(-1), f6_d_denom)
+	f6_d_simp := f6_d.Clone().Simplify(rules)
+	if !f6_d_simp.AmISame(f6_d_corr) {
+		TEST.Fatalf("FAIL Div: f6_d_simp != f6_d_corr  ~  %v -> %v  ==  %v", f6_d, f6_d_simp, f6_d_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f6_d, f6_d_simp)
+		TEST.Logf("Div:  %v -> %v", f6_d, f6_d_simp)
+	}
+
+	f7_d := parse("x^2 / (x^3 * y)", vnames)
+	f7_d_denom := parse("x * y", vnames)
+	f7_d_corr := NewDiv(NewConstant(-1), f7_d_denom)
+	f7_d_simp := f7_d.Clone().Simplify(rules)
+	if !f7_d_simp.AmISame(f7_d_corr) {
+		TEST.Fatalf("FAIL Div: f7_d_simp != f7_d_corr  ~  %v -> %v  ==  %v", f7_d, f7_d_simp, f7_d_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f7_d, f7_d_simp)
+		TEST.Logf("Div:  %v -> %v", f7_d, f7_d_simp)
+	}
+
+	f8_d := parse("x^2 / (x^4 * y)", vnames)
+	f8_d_denom := parse("x^2 * y", vnames)
+	f8_d_corr := NewDiv(NewConstant(-1), f8_d_denom)
+	f8_d_simp := f8_d.Clone().Simplify(rules)
+	if !f8_d_simp.AmISame(f8_d_corr) {
+		TEST.Fatalf("FAIL Div: f8_d_simp != f8_d_corr  ~  %v -> %v  ==  %v", f8_d, f8_d_simp, f8_d_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f8_d, f8_d_simp)
+		TEST.Logf("Div:  %v -> %v", f8_d, f8_d_simp)
+	}
+
+	/*****************************************/
+	/*****************************************/
+
+	f1_b := parse("(x * y) / (x * y)", vnames)
+	f1_b_corr := NewConstant(-1)
+	f1_b_simp := f1_b.Clone().Simplify(rules)
+	if !f1_b_simp.AmISame(f1_b_corr) {
+		TEST.Fatalf("FAIL Div: f1_b_simp != f1_b_corr  ~  %v -> %v  ==  %v", f1_b, f1_b_simp, f1_b_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f1_b, f1_b_simp)
+		TEST.Logf("Div:  %v -> %v", f1_b, f1_b_simp)
+	}
+
+	f2_b := parse("( 2 * x * y ) / (x * y)", vnames)
+	f2_b_corr := parse("2", vnames)
+	f2_b_simp := f2_b.Clone().Simplify(rules)
+	if !f2_b_simp.AmISame(f2_b_corr) {
+		TEST.Fatalf("FAIL Div: f2_b_simp != f2_b_corr  ~  %v -> %v  ==  %v", f2_b, f2_b_simp, f2_b_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f2_b, f2_b_simp)
+		TEST.Logf("Div:  %v -> %v", f2_b, f2_b_simp)
+	}
+
+	f3_b := parse("(x^2 * y) / (x * y)", vnames)
+	f3_b_corr := parse("x", vnames)
+	f3_b_simp := f3_b.Clone().Simplify(rules)
+	if !f3_b_simp.AmISame(f3_b_corr) {
+		TEST.Fatalf("FAIL Div: f3_b_simp != f3_b_corr  ~  %v -> %v  ==  %v", f3_b, f3_b_simp, f3_b_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f3_b, f3_b_simp)
+		TEST.Logf("Div:  %v -> %v", f3_b, f3_b_simp)
+	}
+
+	f4_b := parse("(x^3 * y) / (x^2 * y)", vnames)
+	f4_b_corr := parse("x", vnames)
+	f4_b_simp := f4_b.Clone().Simplify(rules)
+	if !f4_b_simp.AmISame(f4_b_corr) {
+		TEST.Fatalf("FAIL Div: f4_b_simp != f4_b_corr  ~  %v -> %v  ==  %v", f4_b, f4_b_simp, f4_b_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f4_b, f4_b_simp)
+		TEST.Logf("Div:  %v -> %v", f4_b, f4_b_simp)
+	}
+
+	f5_b := parse("(x^4 * y) / (x^2 * y)", vnames)
+	f5_b_corr := parse("x^2", vnames)
+	f5_b_simp := f5_b.Clone().Simplify(rules)
+	if !f5_b_simp.AmISame(f5_b_corr) {
+		TEST.Fatalf("FAIL Div: f5_b_simp != f5_b_corr  ~  %v -> %v  ==  %v", f5_b, f5_b_simp, f5_b_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f5_b, f5_b_simp)
+		TEST.Logf("Div:  %v -> %v", f5_b, f5_b_simp)
+	}
+
+	f6_b := parse("(x * y) / (x^2 * y)", vnames)
+	f6_b_corr := NewDiv(NewConstant(-1), NewVar(0))
+	f6_b_simp := f6_b.Clone().Simplify(rules)
+	if !f6_b_simp.AmISame(f6_b_corr) {
+		TEST.Fatalf("FAIL Div: f6_b_simp != f6_b_corr  ~  %v -> %v  ==  %v", f6_b, f6_b_simp, f6_b_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f6_b, f6_b_simp)
+		TEST.Logf("Div:  %v -> %v", f6_b, f6_b_simp)
+	}
+
+	f7_b := parse("(x^2 * y) / (x^3 * y)", vnames)
+	f7_b_corr := NewDiv(NewConstant(-1), NewVar(0))
+	f7_b_simp := f7_b.Clone().Simplify(rules)
+	if !f7_b_simp.AmISame(f7_b_corr) {
+		TEST.Fatalf("FAIL Div: f7_b_simp != f7_b_corr  ~  %v -> %v  ==  %v", f7_b, f7_b_simp, f7_b_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f7_b, f7_b_simp)
+		TEST.Logf("Div:  %v -> %v", f7_b, f7_b_simp)
+	}
+
+	f8_b := parse("(x^2 * y) / (x^4 * y)", vnames)
+	f8_b_corr := NewDiv(NewConstant(-1), NewPowF(NewVar(0), 2.0))
+	f8_b_simp := f8_b.Clone().Simplify(rules)
+	if !f8_b_simp.AmISame(f8_b_corr) {
+		TEST.Fatalf("FAIL Div: f8_b_simp != f8_b_corr  ~  %v -> %v  ==  %v", f8_b, f8_b_simp, f8_b_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f8_b, f8_b_simp)
+		TEST.Logf("Div:  %v -> %v", f8_b, f8_b_simp)
+	}
+
+	/*****************************************/
+	/*****************************************/
+
+	f1_B := parse("(x * y) / (x * z)", vnames)
+	f1_B_corr := parse("y / z", vnames)
+	f1_B_simp := f1_B.Clone().Simplify(rules)
+	if !f1_B_simp.AmISame(f1_B_corr) {
+		TEST.Fatalf("FAIL Div: f1_B_simp != f1_B_corr  ~  %v -> %v  ==  %v", f1_B, f1_B_simp, f1_B_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f1_B, f1_B_simp)
+		TEST.Logf("Div:  %v -> %v", f1_B, f1_B_simp)
+	}
+
+	f2_B := parse("( 2 * x * y) / (x * z)", vnames)
+	f2_B_corr := parse("(2 * y) / z", vnames)
+	f2_B_simp := f2_B.Clone().Simplify(rules)
+	if !f2_B_simp.AmISame(f2_B_corr) {
+		TEST.Fatalf("FAIL Div: f2_B_simp != f2_B_corr  ~  %v -> %v  ==  %v", f2_B, f2_B_simp, f2_B_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f2_B, f2_B_simp)
+		TEST.Logf("Div:  %v -> %v", f2_B, f2_B_simp)
+	}
+
+	f3_B := parse("(x^2 * y) / (x * z)", vnames)
+	f3_B_corr := parse("(x * y) / z", vnames)
+	f3_B_simp := f3_B.Clone().Simplify(rules)
+	if !f3_B_simp.AmISame(f3_B_corr) {
+		TEST.Fatalf("FAIL Div: f3_B_simp != f3_B_corr  ~  %v -> %v  ==  %v", f3_B, f3_B_simp, f3_B_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f3_B, f3_B_simp)
+		TEST.Logf("Div:  %v -> %v", f3_B, f3_B_simp)
+	}
+
+	f4_B := parse("(x^3 * y) / (x^2 * z)", vnames)
+	f4_B_corr := parse("(x * y) / z", vnames)
+	f4_B_simp := f4_B.Clone().Simplify(rules)
+	if !f4_B_simp.AmISame(f4_B_corr) {
+		TEST.Fatalf("FAIL Div: f4_B_simp != f4_B_corr  ~  %v -> %v  ==  %v", f4_B, f4_B_simp, f4_B_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f4_B, f4_B_simp)
+		TEST.Logf("Div:  %v -> %v", f4_B, f4_B_simp)
+	}
+
+	f5_B := parse("(x^4 * y) / (x^2 * z)", vnames)
+	f5_B_corr := parse("(x^2 * y) / z", vnames)
+	f5_B_simp := f5_B.Clone().Simplify(rules)
+	if !f5_B_simp.AmISame(f5_B_corr) {
+		TEST.Fatalf("FAIL Div: f5_B_simp != f5_B_corr  ~  %v -> %v  ==  %v", f5_B, f5_B_simp, f5_B_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f5_B, f5_B_simp)
+		TEST.Logf("Div:  %v -> %v", f5_B, f5_B_simp)
+	}
+
+	f6_B := parse("(x * y) / (x^2 * z)", vnames)
+	f6_B_corr := parse("y / (x * z)", vnames)
+	f6_B_simp := f6_B.Clone().Simplify(rules)
+	if !f6_B_simp.AmISame(f6_B_corr) {
+		TEST.Fatalf("FAIL Div: f6_B_simp != f6_B_corr  ~  %v -> %v  ==  %v", f6_B, f6_B_simp, f6_B_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f6_B, f6_B_simp)
+		TEST.Logf("Div:  %v -> %v", f6_B, f6_B_simp)
+	}
+
+	f7_B := parse("(x^2 * y) / (x^3 * z)", vnames)
+	f7_B_corr := parse("y / (x * z)", vnames)
+	f7_B_simp := f7_B.Clone().Simplify(rules)
+	if !f7_B_simp.AmISame(f7_B_corr) {
+		TEST.Fatalf("FAIL Div: f7_B_simp != f7_B_corr  ~  %v -> %v  ==  %v", f7_B, f7_B_simp, f7_B_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f7_B, f7_B_simp)
+		TEST.Logf("Div:  %v -> %v", f7_B, f7_B_simp)
+	}
+
+	f8_B := parse("(x^2 * y) / (x^4 * z)", vnames)
+	f8_B_corr := parse("y / (x^2 * z)", vnames)
+	f8_B_simp := f8_B.Clone().Simplify(rules)
+	if !f8_B_simp.AmISame(f8_B_corr) {
+		TEST.Fatalf("FAIL Div: f8_B_simp != f8_B_corr  ~  %v -> %v  ==  %v", f8_B, f8_B_simp, f8_B_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f8_B, f8_B_simp)
+		TEST.Logf("Div:  %v -> %v", f8_B, f8_B_simp)
+	}
+
+	fmt.Println()
+}
+
+// serial := make([]int, 0, 64)
+// serial = e.Serial(serial)
+// fmt.Printf("\nserial: %v\n", serial)
