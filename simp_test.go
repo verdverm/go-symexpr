@@ -979,7 +979,7 @@ func Test_Div(TEST *testing.T) {
 	}
 
 	f8 := parse("x^2 / x^4", vnames)
-	f8_corr := NewDiv(NewConstant(-1), NewPowF(NewVar(0), 2.0))
+	f8_corr := NewDiv(NewConstant(-1), NewPowI(NewVar(0), 2))
 	f8_simp := f8.Clone().Simplify(rules)
 	if !f8_simp.AmISame(f8_corr) {
 		TEST.Fatalf("FAIL Div: f8_simp != f8_corr  ~  %v -> %v  ==  %v", f8, f8_simp, f8_corr)
@@ -1231,7 +1231,7 @@ func Test_Div(TEST *testing.T) {
 	}
 
 	f8_b := parse("(x^2 * y) / (x^4 * y)", vnames)
-	f8_b_corr := NewDiv(NewConstant(-1), NewPowF(NewVar(0), 2.0))
+	f8_b_corr := NewDiv(NewConstant(-1), NewPowI(NewVar(0), 2))
 	f8_b_simp := f8_b.Clone().Simplify(rules)
 	if !f8_b_simp.AmISame(f8_b_corr) {
 		TEST.Fatalf("FAIL Div: f8_b_simp != f8_b_corr  ~  %v -> %v  ==  %v", f8_b, f8_b_simp, f8_b_corr)
@@ -1321,6 +1321,16 @@ func Test_Div(TEST *testing.T) {
 	} else {
 		fmt.Printf("Div:  %v -> %v", f8_B, f8_B_simp)
 		TEST.Logf("Div:  %v -> %v", f8_B, f8_B_simp)
+	}
+
+	f1_R := parse("( {-1.004803*(x)^2}/{x} + {0.010163*(x)^12}/{x} + 0.995197*x )", vnames)
+	f1_R_corr := parse("2 + (3 * x^4)", vnames)
+	f1_R_simp := f1_R.Clone().Simplify(rules)
+	if !f1_R_simp.AmISame(f1_R_corr) {
+		TEST.Fatalf("FAIL Div: f1_R_simp != f1_R_corr  ~  %v -> %v  ==  %v", f1_R, f1_R_simp, f1_R_corr)
+	} else {
+		fmt.Printf("Div:  %v -> %v", f1_R, f1_R_simp)
+		TEST.Logf("Div:  %v -> %v", f1_R, f1_R_simp)
 	}
 
 	fmt.Println()

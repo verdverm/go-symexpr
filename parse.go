@@ -2,9 +2,9 @@ package symexpr
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
-	"math"
 )
 
 func ParseFunc(text string, varNames []string) Expr {
@@ -86,7 +86,7 @@ func parseExpr(prefix string, L *lexer, p int) Expr {
 			case itemCarrot:
 				switch e2.ExprType() {
 				case CONSTANTF:
-					pow := NewPowF(e, e2.(*ConstantF).F)
+					pow := NewPowI(e, int(e2.(*ConstantF).F))
 					e = pow
 				default:
 					pow := NewPowE(e, e2)

@@ -306,11 +306,13 @@ func (u *PowI) Simplify(rules SimpRules) Expr {
 		// fmt.Printf("PowI-postsort:  %v   %v\n", u.Base, serial2)
 		t = u.Base.ExprType()
 	}
+
 	if u.Power > rules.MaxPowPow {
 		u.Power = rules.MaxPowPow
 	} else if u.Power < -rules.MaxPowPow {
 		u.Power = -rules.MaxPowPow
 	}
+
 	if u.Power == 0 {
 		ret = &ConstantF{F: 1}
 	} else if u.Power == 1 {
@@ -332,8 +334,9 @@ func (u *PowI) Simplify(rules SimpRules) Expr {
 				mret.Insert(m.CS[0])
 				m.CS[0] = nil
 				u.Base = m.Simplify(rules)
-				mret.Insert(u)
-				ret = u
+				tmp := NewPowF(u.Base, float64(u.Power))
+				mret.Insert(tmp)
+				ret = mret
 			}
 		case POWI:
 			p := u.Base.(*PowI)
@@ -344,8 +347,10 @@ func (u *PowI) Simplify(rules SimpRules) Expr {
 			} else if u.Power < -rules.MaxPowPow {
 				u.Power = -rules.MaxPowPow
 			}
+			// ret = NewPowF(u.Base, float64(u.Power))
 			ret = u
 		default: // no simplification
+			// ret = NewPowF(u.Base, float64(u.Power))
 			ret = u
 		}
 	}
@@ -383,7 +388,7 @@ func (u *PowF) Simplify(rules SimpRules) Expr {
 			u.Base = nil
 			ret.(*ConstantF).F = math.Pow(ret.(*ConstantF).F, float64(u.Power))
 		default: // no simplification
-			ret = u
+			ret = NewPowI(u.Base, int(u.Power))
 		}
 	}
 	return ret
@@ -517,13 +522,13 @@ func (n *Div) Simplify(rules SimpRules) Expr {
 		return ret
 	} else if t2 == CONSTANT && t1 == MUL {
 		d := n.Numer.(*Mul)
-		if d.CS[0].ExprType() == CONSTANT {
-			ret = n.Numer
-			n.Numer = nil
-			n.Denom = nil
-			return ret
+		if d.CS[0].ExprType() != CONSTANT {
+			d.Insert(NewConstant(-1))
 		}
-		return n
+		ret = n.Numer
+		n.Numer = nil
+		n.Denom = nil
+		return ret
 	} else {
 		ret = n.cancelLikeTerms(rules)
 	}
@@ -563,8 +568,8 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 					changed = true
 					break
 				}
-				if n.ExprType() == POWF && d.ExprType() == POWF {
-					np, dp := n.(*PowF), d.(*PowF)
+				if n.ExprType() == POWI && d.ExprType() == POWI {
+					np, dp := n.(*PowI), d.(*PowI)
 					if np.Base.AmISame(dp.Base) {
 						if np.Power > dp.Power {
 							np.Power -= dp.Power
@@ -583,16 +588,16 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 							break
 						}
 					}
-				} else if n.ExprType() == POWF {
-					np := n.(*PowF)
+				} else if n.ExprType() == POWI {
+					np := n.(*PowI)
 					if np.Base.AmISame(d) {
 						np.Power -= 1
 						md.CS[j] = nil
 						changed = true
 						continue
 					}
-				} else if d.ExprType() == POWF {
-					nd := d.(*PowF)
+				} else if d.ExprType() == POWI {
+					nd := d.(*PowI)
 					if nd.Base.AmISame(n) {
 						nd.Power -= 1
 						mn.CS[i] = nil
@@ -617,8 +622,8 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 				changed = true
 				break
 			}
-			if n.ExprType() == POWF && d.ExprType() == POWF {
-				np, dp := n.(*PowF), d.(*PowF)
+			if n.ExprType() == POWI && d.ExprType() == POWI {
+				np, dp := n.(*PowI), d.(*PowI)
 				if np.Base.AmISame(dp.Base) {
 					if np.Power > dp.Power {
 						np.Power -= dp.Power
@@ -638,16 +643,16 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 						break
 					}
 				}
-			} else if n.ExprType() == POWF {
-				np := n.(*PowF)
+			} else if n.ExprType() == POWI {
+				np := n.(*PowI)
 				if np.Base.AmISame(d) {
 					np.Power -= 1
 					D.Denom = nil
 					changed = true
 					break
 				}
-			} else if d.ExprType() == POWF {
-				nd := d.(*PowF)
+			} else if d.ExprType() == POWI {
+				nd := d.(*PowI)
 				if nd.Base.AmISame(n) {
 					nd.Power -= 1
 					mn.CS[i] = nil
@@ -669,8 +674,8 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 				changed = true
 				break
 			}
-			if n.ExprType() == POWF && d.ExprType() == POWF {
-				np, dp := n.(*PowF), d.(*PowF)
+			if n.ExprType() == POWI && d.ExprType() == POWI {
+				np, dp := n.(*PowI), d.(*PowI)
 				if np.Base.AmISame(dp.Base) {
 					if np.Power > dp.Power {
 						np.Power -= dp.Power
@@ -690,16 +695,16 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 						break
 					}
 				}
-			} else if n.ExprType() == POWF {
-				np := n.(*PowF)
+			} else if n.ExprType() == POWI {
+				np := n.(*PowI)
 				if np.Base.AmISame(d) {
 					np.Power -= 1
 					md.CS[i] = nil
 					changed = true
 					break
 				}
-			} else if d.ExprType() == POWF {
-				nd := d.(*PowF)
+			} else if d.ExprType() == POWI {
+				nd := d.(*PowI)
 				if nd.Base.AmISame(n) {
 					nd.Power -= 1
 					D.Numer = NewConstant(-1)
@@ -714,9 +719,9 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 			D.Numer = NewConstantF(1.0)
 			D.Denom = nil
 			changed = true
-		} else if n.ExprType() == POWF && d.ExprType() == POWF {
+		} else if n.ExprType() == POWI && d.ExprType() == POWI {
 			fmt.Println("Got Here 1")
-			np, dp := n.(*PowF), d.(*PowF)
+			np, dp := n.(*PowI), d.(*PowI)
 			if np.Base.AmISame(dp.Base) {
 				if np.Power > dp.Power {
 					np.Power -= dp.Power
@@ -733,17 +738,17 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 					changed = true
 				}
 			}
-		} else if n.ExprType() == POWF {
+		} else if n.ExprType() == POWI {
 			fmt.Println("Got Here 2")
-			np := n.(*PowF)
+			np := n.(*PowI)
 			if np.Base.AmISame(d) {
 				np.Power -= 1
 				D.Denom = nil
 				changed = true
 			}
-		} else if d.ExprType() == POWF {
+		} else if d.ExprType() == POWI {
 			fmt.Println("Got Here 3")
-			nd := d.(*PowF)
+			nd := d.(*PowI)
 			if nd.Base.AmISame(n) {
 				nd.Power -= 1
 				D.Numer = NewConstant(-1)
@@ -1678,43 +1683,43 @@ func groupMulTermsF(m *Mul) (changed bool) {
 						}
 					}
 				} else {
-					// whole or fractional power?
-					flr := math.Floor(powSum)
-					dim := math.Dim(powSum, flr)
-					if dim == 0 {
-						// whole power
-						base := x
-						if xT != POWI {
-							if xTb != NULL {
-								switch xT {
-								case NEG:
-									base = x.(*Neg).C
-								case POWF:
-									base = x.(*PowF).Base
-								}
+					// // whole or fractional power?
+					// flr := math.Floor(powSum)
+					// dim := math.Dim(powSum, flr)
+					// if dim == 0 {
+					// 	// whole power
+					// 	base := x
+					// 	if xT != POWI {
+					// 		if xTb != NULL {
+					// 			switch xT {
+					// 			case NEG:
+					// 				base = x.(*Neg).C
+					// 			case POWF:
+					// 				base = x.(*PowF).Base
+					// 			}
+					// 		}
+					// 		base = NewPowI(base, int(powSum))
+					// 	} else {
+					// 		base.(*PowI).Power = int(powSum)
+					// 	}
+					// 	terms[i] = base
+					// } else {
+					// fractional power
+					base := x
+					if xT != POWF {
+						if xTb != NULL {
+							switch xT {
+							case NEG:
+								base = x.(*Neg).C
+							case POWI:
+								base = x.(*PowI).Base
 							}
-							base = NewPowI(base, int(powSum))
-						} else {
-							base.(*PowI).Power = int(powSum)
 						}
-						terms[i] = base
+						base = NewPowF(base, powSum)
 					} else {
-						// fractional power
-						base := x
-						if xT != POWF {
-							if xTb != NULL {
-								switch xT {
-								case NEG:
-									base = x.(*Neg).C
-								case POWI:
-									base = x.(*PowI).Base
-								}
-							}
-							base = NewPowF(base, powSum)
-						} else {
-							base.(*PowF).Power = powSum
-						}
+						base.(*PowF).Power = powSum
 					}
+					// }
 				}
 			}
 		}
