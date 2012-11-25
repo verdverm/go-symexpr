@@ -3,7 +3,7 @@ package symexpr
 import (
 	"math"
 
-	"fmt"
+	// "fmt"
 )
 
 type SimpRules struct {
@@ -529,6 +529,36 @@ func (n *Div) Simplify(rules SimpRules) Expr {
 		n.Numer = nil
 		n.Denom = nil
 		return ret
+	} else if t1 == t2 && t1 == CONSTANTF {
+		c := n.Numer.(*ConstantF)
+		c.F /= n.Denom.(*ConstantF).F
+		ret = n.Numer
+		n.Numer = nil
+		n.Denom = nil
+		return ret
+	} else if t1 == CONSTANTF && t2 == MUL {
+		d := n.Denom.(*Mul)
+		if d.CS[0].ExprType() == CONSTANTF {
+			c := n.Numer.(*ConstantF)
+			c.F /= d.CS[0].(*ConstantF).F
+			d.CS[0] = nil
+			n.Denom = d.Simplify(rules)
+		}
+		return ret
+	} else if t2 == CONSTANTF && t1 == MUL {
+		d := n.Numer.(*Mul)
+		if d.CS[0].ExprType() != CONSTANTF {
+			c := NewConstantF(1.0)
+			c.F /= n.Denom.(*ConstantF).F
+			d.Insert(c)
+		} else {
+			c := d.CS[0].(*ConstantF)
+			c.F /= n.Denom.(*ConstantF).F
+		}
+		ret = n.Numer
+		n.Numer = nil
+		n.Denom = nil
+		return ret
 	} else {
 		ret = n.cancelLikeTerms(rules)
 	}
@@ -545,7 +575,7 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 	// fmt.Println("cancel", t1, t2)
 
 	if D.Numer.AmISame(D.Denom) {
-		return NewConstant(-1)
+		return NewConstantF(1.0)
 	}
 
 	changed := false
@@ -560,7 +590,7 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 				if d == nil {
 					continue
 				}
-				fmt.Println("cancel", i, n.ExprType(), j, d.ExprType())
+				// fmt.Println("cancel", i, n.ExprType(), j, d.ExprType())
 
 				if n.AmISame(d) {
 					mn.CS[i] = nil
@@ -611,7 +641,7 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 		}
 	} else if t1 == MUL {
 		if D.Numer.AmIAlmostSame(D.Denom) {
-			return NewConstant(-1)
+			return NewConstantF(1.0)
 		}
 		mn := D.Numer.(*Mul)
 		d := D.Denom
@@ -663,13 +693,13 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 		}
 	} else if t2 == MUL {
 		if D.Denom.AmIAlmostSame(D.Numer) {
-			return NewConstant(-1)
+			return NewConstantF(1.0)
 		}
 		n := D.Numer
 		md := D.Denom.(*Mul)
 		for i, d := range md.CS {
 			if n.AmISame(d) {
-				D.Numer = NewConstant(-1)
+				D.Numer = NewConstantF(1.0)
 				md.CS[i] = nil
 				changed = true
 				break
@@ -684,7 +714,7 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 						break
 					} else if np.Power < dp.Power {
 						dp.Power -= np.Power
-						D.Numer = NewConstant(-1)
+						D.Numer = NewConstantF(1.0)
 						changed = true
 						break
 					} else { // same and should cancel
@@ -707,7 +737,7 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 				nd := d.(*PowI)
 				if nd.Base.AmISame(n) {
 					nd.Power -= 1
-					D.Numer = NewConstant(-1)
+					D.Numer = NewConstantF(1.0)
 					changed = true
 					break
 				}
@@ -720,7 +750,7 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 			D.Denom = nil
 			changed = true
 		} else if n.ExprType() == POWI && d.ExprType() == POWI {
-			fmt.Println("Got Here 1")
+			// fmt.Println("Got Here 1")
 			np, dp := n.(*PowI), d.(*PowI)
 			if np.Base.AmISame(dp.Base) {
 				if np.Power > dp.Power {
@@ -729,7 +759,7 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 					changed = true
 				} else if np.Power < dp.Power {
 					dp.Power -= np.Power
-					D.Numer = NewConstant(-1)
+					D.Numer = NewConstantF(1.0)
 					changed = true
 				} else { // same and should cancel
 					// will we even get here?
@@ -739,7 +769,7 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 				}
 			}
 		} else if n.ExprType() == POWI {
-			fmt.Println("Got Here 2")
+			// fmt.Println("Got Here 2")
 			np := n.(*PowI)
 			if np.Base.AmISame(d) {
 				np.Power -= 1
@@ -747,11 +777,11 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 				changed = true
 			}
 		} else if d.ExprType() == POWI {
-			fmt.Println("Got Here 3")
+			// fmt.Println("Got Here 3")
 			nd := d.(*PowI)
 			if nd.Base.AmISame(n) {
 				nd.Power -= 1
-				D.Numer = NewConstant(-1)
+				D.Numer = NewConstantF(1.0)
 				changed = true
 			}
 		}
@@ -776,7 +806,7 @@ func (D *Div) cancelLikeTerms(rules SimpRules) Expr {
 		if t1 == NULL && t2 == NULL {
 			ret = nil
 		} else if t1 == NULL {
-			D.Numer = NewConstant(-1)
+			D.Numer = NewConstantF(1.0)
 			ret = D
 			return ret
 		} else if t2 == NULL {
@@ -1134,11 +1164,11 @@ func groupAddTerms(n *Add) (changed bool) {
 			if xT == MUL {
 				mul := x.(*Mul)
 				if !(mul.CS[0].ExprType() == CONSTANT) {
-					mul.Insert(NewConstant(-1))
+					mul.Insert(NewConstantF(1.0))
 				}
 			} else {
 				mul := NewMul()
-				mul.Insert(NewConstant(-1))
+				mul.Insert(NewConstantF(1.0))
 				mul.Insert(x)
 				terms[i] = mul
 			}
@@ -1386,7 +1416,7 @@ func gatherMulTermsF(n *Mul) (changed bool) {
 				if E == nil {
 					continue
 				}
-				if e.ExprType() == CONSTANT {
+				if e.ExprType() == CONSTANT || e.ExprType() == CONSTANTF {
 					if !hasCoeff {
 						hasCoeff = true
 						terms = append(terms, E)

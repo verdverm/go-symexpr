@@ -42,7 +42,7 @@ func (c *ConstantF) PrettyPrint(dnames, snames []string, cvals []float64) string
 	return c.String()
 }
 func (c *ConstantF) Latex(dnames, snames []string, cvals []float64) string {
-	return c.String()
+	return fmt.Sprintf("%.2f", c.F)
 }
 
 func (s *System) String() string { return "S_" + fmt.Sprint(s.P) }
