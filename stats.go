@@ -94,8 +94,17 @@ func (n *PowE) CalcExprStats(currDepth int) (mySize int) {
 
 func (n *Div) CalcExprStats(currDepth int) (mySize int) {
 	n.depth = currDepth + 1
-	n.size = 1 + n.Numer.CalcExprStats(currDepth+1) + n.Denom.CalcExprStats(currDepth+1)
-	n.height = 1 + max(n.Numer.Height(), n.Denom.Height())
+	var ns, ds, nh, dh int
+	if n.Numer != nil {
+		ns = n.Numer.CalcExprStats(currDepth + 1)
+		nh = n.Numer.Height()
+	}
+	if n.Denom != nil {
+		ds = n.Denom.CalcExprStats(currDepth + 1)
+		dh = n.Denom.Height()
+	}
+	n.size = 1 + ns + ds
+	n.height = 1 + max(nh, dh)
 	n.numchld = 2
 	return n.size
 }

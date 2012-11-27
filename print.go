@@ -269,14 +269,35 @@ func (n *Div) String() string {
 }
 func (n *Div) Serial(sofar []int) []int {
 	sofar = append(sofar, int(DIV))
+	if n.Numer == nil {
+		sofar = append(sofar, 0)
+	}
 	sofar = n.Numer.Serial(sofar)
-	return n.Denom.Serial(sofar)
+	if n.Denom == nil {
+		sofar = append(sofar, 0)
+	}
+	sofar = n.Denom.Serial(sofar)
+	return sofar
 }
-func (u *Div) PrettyPrint(dnames, snames []string, cvals []float64) string {
-	return "{" + u.Numer.PrettyPrint(dnames, snames, cvals) + "}/{" + u.Denom.PrettyPrint(dnames, snames, cvals) + "}"
+func (n *Div) PrettyPrint(dnames, snames []string, cvals []float64) string {
+	nstr, dstr := "nil", "nil"
+	if n.Numer != nil {
+		nstr = n.Numer.PrettyPrint(dnames, snames, cvals)
+	}
+	if n.Denom != nil {
+		dstr = n.Denom.PrettyPrint(dnames, snames, cvals)
+	}
+	return "{ " + nstr + " }/{ " + dstr + " }"
 }
-func (u *Div) Latex(dnames, snames []string, cvals []float64) string {
-	return "\\frac{" + u.Numer.Latex(dnames, snames, cvals) + "}{" + u.Denom.Latex(dnames, snames, cvals) + "}"
+func (n *Div) Latex(dnames, snames []string, cvals []float64) string {
+	nstr, dstr := "nil", "nil"
+	if n.Numer != nil {
+		nstr = n.Numer.Latex(dnames, snames, cvals)
+	}
+	if n.Denom != nil {
+		dstr = n.Denom.Latex(dnames, snames, cvals)
+	}
+	return "frac{ " + nstr + " }/{ " + dstr + " }"
 }
 
 func (n *Add) String() string {

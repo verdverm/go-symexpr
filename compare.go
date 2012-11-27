@@ -277,35 +277,70 @@ func (n *PowE) AmIAlmostSame(r Expr) bool {
 func (n *PowE) Sort() { n.Base.Sort(); n.Power.Sort() }
 
 func (n *Div) AmILess(r Expr) bool {
+	if r == nil {
+		return false
+	}
 	if DIV < r.ExprType() {
 		return true
 	}
 	if DIV > r.ExprType() {
 		return false
 	}
-	if n.Numer.AmILess(r.(*Div).Numer) {
+	rp := r.(*Div)
+	if n.Numer.AmILess(rp.Numer) {
 		return true
 	}
-	if r.(*Div).Numer.AmILess(n.Numer) {
+	if rp.Numer.AmILess(n.Numer) {
 		return false
 	}
 	return n.Denom.AmILess(r.(*Div).Denom)
 }
 func (n *Div) AmIEqual(r Expr) bool {
-	return r.ExprType() == DIV && n.Numer.AmIEqual(r.(*Div).Numer) && n.Denom.AmIEqual(r.(*Div).Denom)
+	if r == nil || r.ExprType() != DIV {
+		return false
+	}
+	rp := r.(*Div)
+	if (n.Numer != nil && rp.Numer == nil) || (n.Numer == nil && rp.Numer != nil) {
+		return false
+	}
+	if (n.Denom != nil && rp.Denom == nil) || (n.Denom == nil && rp.Denom != nil) {
+		return false
+	}
+	return r.ExprType() == DIV && n.Numer.AmIEqual(rp.Numer) && rp.Denom.AmIEqual(rp.Denom)
 }
 func (n *Div) AmISame(r Expr) bool {
-	return r.ExprType() == DIV && n.Numer.AmISame(r.(*Div).Numer) && n.Denom.AmISame(r.(*Div).Denom)
+	if r == nil || r.ExprType() != DIV {
+		return false
+	}
+	rp := r.(*Div)
+	if (n.Numer != nil && rp.Numer == nil) || (n.Numer == nil && rp.Numer != nil) {
+		return false
+	}
+	if (n.Denom != nil && rp.Denom == nil) || (n.Denom == nil && rp.Denom != nil) {
+		return false
+	}
+	return r.ExprType() == DIV && n.Numer.AmISame(rp.Numer) && n.Denom.AmISame(rp.Denom)
 }
 func (n *Div) AmIAlmostSame(r Expr) bool {
-	return r.ExprType() == DIV && n.Numer.AmIAlmostSame(r.(*Div).Numer) && n.Denom.AmIAlmostSame(r.(*Div).Denom)
+	if r == nil || r.ExprType() != DIV {
+		return false
+	}
+	rp := r.(*Div)
+	if (n.Numer != nil && rp.Numer == nil) || (n.Numer == nil && rp.Numer != nil) {
+		return false
+	}
+	if (n.Denom != nil && rp.Denom == nil) || (n.Denom == nil && rp.Denom != nil) {
+		return false
+	}
+	return r.ExprType() == DIV && n.Numer.AmIAlmostSame(rp.Numer) && n.Denom.AmIAlmostSame(rp.Denom)
 }
 func (n *Div) Sort() {
-	// if n.Numer == nil {
-
-	// } 
-	n.Numer.Sort()
-	n.Denom.Sort()
+	if n.Numer != nil {
+		n.Numer.Sort()
+	}
+	if n.Denom != nil {
+		n.Denom.Sort()
+	}
 }
 
 func (n *Add) AmILess(r Expr) bool {
