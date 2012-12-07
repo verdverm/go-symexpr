@@ -774,69 +774,18 @@ func Test_SimpMul(TEST *testing.T) {
 func Test_Damd(TEST *testing.T) {
 	fmt.Printf("Testing: Damd Simps      \n")
 	var rules = DefaultRules()
+	vnames := []string{"x", "y", "z"}
 
-	// md := NewMul()
-	// md.Insert(NewConstant(-1))
-	// mdiv := NewDiv(NewConstant(0), NewVar(0))
-	// md.Insert(mdiv)
-	// md_simp := md.Clone().Simplify(rules)
-	// md_corr := NewDiv(NewConstant(0), NewVar(0))
-	// if !md_simp.AmISame(md_corr) {
-	// 	TEST.Fatalf("FAIL MulVar: md_simp != md_corr  ~  %v -> %v  ==  %v", md, md_simp, md_corr)
-	// } else {
-	// 	TEST.Logf("MulVar:  %v -> %v", md, md_simp)
-	// }
+	f1 := parse("2*x^2* x^3", vnames)
+	fmt.Printf("f1 orig: %v\n", f1)
+	f1s := f1.Clone().Simplify(rules)
+	fmt.Printf("f1 simp: %v\n\n", f1s)
 
-	// ma := NewAdd()
-	// ma.Insert(NewConstant(0))
-	// mm := NewMul()
-	// mm.Insert(NewConstant(1))
-	// mm.Insert(NewDiv(NewConstant(2), NewVar(0)))
-	// ma.Insert(mm)
-	// ma_simp := ma.Clone().Simplify(rules)
-	// ma_corr := NewAdd()
-	// ma_corr.Insert(NewConstant(0))
-	// ma_corr.Insert(NewDiv(NewConstant(1), NewVar(0)))
-	// if !ma_simp.AmISame(ma_corr) {
-	// 	TEST.Fatalf("FAIL MulVar: ma_simp != ma_corr  ~  %v -> %v  ==  %v", ma, ma_simp, ma_corr)
-	// } else {
-	// 	TEST.Logf("MulVar:  %v -> %v", ma, ma_simp)
-	// }
+	f2 := parse("2*x^-3 * x^2", vnames)
+	fmt.Printf("f2 orig: %v\n", f2)
+	f2s := f2.Clone().Simplify(rules)
+	fmt.Printf("f2 simp: %v\n\n", f2s)
 
-	// dp := NewPowI(NewPowI(NewVar(0), 2), -4)
-	// dp_simp := dp.Clone().Simplify(rules)
-	// dp_corr := NewPowI(NewVar(0), -8)
-	// if !dp_simp.AmISame(dp_corr) {
-	// 	TEST.Fatalf("FAIL MulVar: dp_simp != dp_corr  ~  %v -> %v  ==  %v", dp, dp_simp, dp_corr)
-	// } else {
-	// 	TEST.Logf("MulVar:  %v -> %v", dp, dp_simp)
-	// }
-
-	//  C_0*(( C_1*X_0 + X_0 ))^2  =>  C_0*(X_0)^2
-	ms := NewMul()
-	ms.Insert(NewConstant(0))
-	ms2 := NewMul()
-	ms2.Insert(NewConstant(1))
-	ms2.Insert(NewVar(0))
-	msa := NewAdd()
-	msa.Insert(ms2)
-	msa.Insert(NewVar(0))
-	ms.Insert(NewPowI(msa, 2))
-	ms_simp := ms.Clone().Simplify(rules)
-	ms_corr := NewMul()
-	ms_corr.Insert(NewConstant(0))
-	ms_corr.Insert(NewPowI(NewVar(0), 2))
-
-	serial := make([]int, 0, 64)
-	serial = ms_simp.Serial(serial)
-	serial2 := make([]int, 0, 64)
-	serial2 = ms_corr.Serial(serial2)
-
-	if !ms_simp.AmISame(ms_corr) {
-		TEST.Fatalf("FAIL MulVar: ms_simp != ms_corr  ~  %v -> %v  ==  %v\n%v  !=  %v", ms, ms_simp, ms_corr, serial, serial2)
-	} else {
-		TEST.Logf("MulVar:  %v -> %v", ms, ms_simp)
-	}
 }
 
 func Test_ConstantF(TEST *testing.T) {

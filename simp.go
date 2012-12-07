@@ -1224,6 +1224,13 @@ func groupMulTerms(m *Mul) (changed bool) {
 			xC = p.Base
 			xTb = p.Base.ExprType()
 			powSum = p.Power
+		case POWE:
+			p := x.(*PowE)
+			if p.Power.ExprType() == CONSTANTF {
+				xC = p.Base
+				xTb = p.Base.ExprType()
+				powSum = p.Power.(*ConstantF).F
+			}
 		}
 
 		for j := i + 1; j < L; j++ {
@@ -1265,7 +1272,16 @@ func groupMulTerms(m *Mul) (changed bool) {
 				yC = p.Base
 				yTb = p.Base.ExprType()
 				powY = p.Power
+			case POWE:
+				p := y.(*PowE)
+				if p.Power.ExprType() == CONSTANTF {
+					yC = p.Base
+					yTb = p.Base.ExprType()
+					powY = p.Power.(*ConstantF).F
+				}
 			}
+
+			// fmt.Println("Types: ", xT, xTb, yT, yTb)
 
 			// This is the actual comparison Code
 			same := false
@@ -1273,6 +1289,12 @@ func groupMulTerms(m *Mul) (changed bool) {
 				if x.AmISame(y) {
 					same = true
 					powSum += powY
+				}
+				if xTb == yTb && xTb != NULL {
+					if xC.AmISame(yC) {
+						same = true
+						powSum += powY
+					}
 				}
 			} else if xTb == yT {
 				if xC.AmISame(y) {
@@ -1293,6 +1315,7 @@ func groupMulTerms(m *Mul) (changed bool) {
 
 			// Check the results of camparison update the terms
 			if same {
+				// fmt.Printf("GotHERE\n")
 				terms[j] = nil
 				changed = true
 				if powSum == 0 {
