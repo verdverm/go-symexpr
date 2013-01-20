@@ -13,13 +13,17 @@ import (
 type ExprType int
 
 const (
-	NULL      ExprType = iota
-	CONSTANT           // indexed constant, useful for regression tasks
-	CONSTANTF          // floating point constant
-	TIME               // useful when looking at time series and RK4 integration
-	SYSTEM             // i use this like a variable that changes between experiments, but not with time (mass,size,etc.)
-	VAR                // a canonical variable
+	NULL ExprType = iota
 
+	STARTLEAF
+	CONSTANT  // indexed constant, useful for non-linear regression tasks
+	CONSTANTF // floating point constant
+	TIME      // useful when looking at time series and RK4 integration
+	SYSTEM    // i use this like a variable that changes between experiments, but not with time (mass,size,etc.)
+	VAR       // a canonical variable
+	LASTLEAF
+
+	STARTFUNC
 	NEG
 	ABS
 	SQRT
@@ -28,14 +32,15 @@ const (
 	TAN
 	EXP
 	LOG
+	LASTFUNC
+
 	POWI // Expr^Integer
 	POWF // Expr^Float
-
 	POWE // Expr^Expr
-	DIV
+	DIV  // Expr/Expr
 
 	ADD // these can have more than two child nodes
-	MUL // this eases simplification
+	MUL // this eases sorting and simplification
 
 	EXPR_MAX
 	STARTVAR // for serialization reduction of variables
