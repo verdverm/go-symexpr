@@ -59,7 +59,8 @@ type Expr interface {
 	Depth() int
 	Height() int
 	NumChildren() int
-	CalcExprStats(currDepth int) (mySize int)
+	CalcExprStats()
+	calcExprStatsR(depth int, pos *int)
 
 	// compare.go
 	AmILess(rhs Expr) bool
@@ -161,16 +162,24 @@ type Null struct {
 	ExprStats
 }
 
-func NewNull() Expr                { return new(Null) }
+func NewNull() *Null               { return new(Null) }
 func (n *Null) ExprType() ExprType { return NULL }
-func (n *Null) Clone() Expr        { return &Null{ExprStats{0, 0, 0, 0}} }
+func (n *Null) Clone() Expr        { return NewNull() }
 
-func (n *Null) CalcExprStats(currDepth int) (mySize int) {
-	n.depth = currDepth + 1
-	n.height = 0
-	n.size = 0
+func (n *Null) CalcExprStats() {
+	n.depth = 1
+	n.height = 1
+	n.size = 1
+	n.pos = 0
 	n.numchld = 0
-	return n.size
+}
+func (n *Null) calcExprStatsR(depth int, pos *int) {
+	n.depth = depth + 1
+	n.height = 1
+	n.size = 1
+	n.pos = *pos
+	(*pos)++
+	n.numchld = 0
 }
 
 func (n *Null) AmILess(r Expr) bool       { return NULL < r.ExprType() }
@@ -215,3 +224,63 @@ func (n *Null) Simplify(rules SimpRules) Expr { return n }
 
 func (n *Null) DerivConst(i int) Expr { return &ConstantF{F: 0} }
 func (n *Null) DerivVar(i int) Expr   { return &ConstantF{F: 0} }
+
+func (e ExprType) String() string {
+	switch e {
+	case NULL:
+		return "NULL"
+	case STARTLEAF:
+		return "STARTLEAF"
+	case CONSTANT:
+		return "CONSTANT"
+	case CONSTANTF:
+		return "CONSTANTF"
+	case TIME:
+		return "TIME"
+	case SYSTEM:
+		return "SYSTEM"
+	case VAR:
+		return "VAR"
+	case LASTLEAF:
+		return "LASTLEAF"
+	case STARTFUNC:
+		return "STARTFUNC"
+	case NEG:
+		return "NEG"
+	case ABS:
+		return "ABS"
+	case SQRT:
+		return "SQRT"
+	case SIN:
+		return "SIN"
+	case COS:
+		return "COS"
+	case TAN:
+		return "TAN"
+	case EXP:
+		return "EXP"
+	case LOG:
+		return "LOG"
+	case LASTFUNC:
+		return "LASTFUNC"
+	case POWI:
+		return "POWI"
+	case POWF:
+		return "POWF"
+	case POWE:
+		return "POWE"
+	case DIV:
+		return "DIV"
+	case ADD:
+		return "ADD"
+	case MUL:
+		return "MUL"
+	case EXPR_MAX:
+		return "EXPR_MAX"
+	case STARTVAR:
+		return "STARTVAR"
+	default:
+		return "Unknown ExprType"
+	}
+	return "Unknown ExprType"
+}
