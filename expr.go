@@ -7,6 +7,7 @@
 package symexpr
 
 import (
+	"fmt"
 	"math"
 )
 
@@ -215,3 +216,43 @@ func (n *Null) Simplify(rules SimpRules) Expr { return n }
 
 func (n *Null) DerivConst(i int) Expr { return &ConstantF{F: 0} }
 func (n *Null) DerivVar(i int) Expr   { return &ConstantF{F: 0} }
+
+
+
+
+func DumpExprTypes() {
+	fmt.Printf("ExprTypes:\n")
+	fmt.Printf("---------------\n")
+
+	fmt.Printf("NULL:      %v\n", NULL)
+
+	fmt.Printf("STARTLEAF: %v\n", STARTLEAF)
+	fmt.Printf("CONSTANT:  %v\n", CONSTANT)
+	fmt.Printf("TIME:      %v\n", TIME)
+	fmt.Printf("SYSTEM:    %v\n", SYSTEM)
+	fmt.Printf("VAR:       %v\n", VAR)
+	fmt.Printf("LASTLEAF:  %v\n", LASTLEAF)
+
+	fmt.Printf("STARTFUNC: %v\n", STARTFUNC)
+	fmt.Printf("NEG:       %v\n", NEG)
+	fmt.Printf("ABS:       %v\n", ABS)
+	fmt.Printf("SQRT:      %v\n", SQRT)
+	fmt.Printf("SIN:       %v\n", SIN)
+	fmt.Printf("COS:       %v\n", COS)
+	fmt.Printf("TAN:       %v\n", TAN)
+	fmt.Printf("EXP:       %v\n", EXP)
+	fmt.Printf("LOG:       %v\n", LOG)
+	fmt.Printf("LASTFUNC:  %v\n", LASTFUNC)
+
+	fmt.Printf("POWI:      %v\n", POWI)
+	fmt.Printf("POWF:      %v\n", POWF)
+	fmt.Printf("POWE:      %v\n", POWE)
+	fmt.Printf("DIV:       %v\n", DIV)
+
+	fmt.Printf("ADD:       %v\n", ADD)
+	fmt.Printf("MUL:       %v\n", MUL)
+
+	fmt.Printf("EXPR_MAX:  %v\n", EXPR_MAX)
+	fmt.Printf("STARTVAR:  %v\n", STARTVAR)
+
+}
