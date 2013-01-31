@@ -60,7 +60,8 @@ type Expr interface {
 	Depth() int
 	Height() int
 	NumChildren() int
-	CalcExprStats(currDepth int) (mySize int)
+	CalcExprStats()
+	calcExprStatsR(depth int, pos *int)
 
 	// compare.go
 	AmILess(rhs Expr) bool
@@ -162,16 +163,24 @@ type Null struct {
 	ExprStats
 }
 
-func NewNull() Expr                { return new(Null) }
+func NewNull() *Null               { return new(Null) }
 func (n *Null) ExprType() ExprType { return NULL }
-func (n *Null) Clone() Expr        { return &Null{ExprStats{0, 0, 0, 0}} }
+func (n *Null) Clone() Expr        { return NewNull() }
 
-func (n *Null) CalcExprStats(currDepth int) (mySize int) {
-	n.depth = currDepth + 1
-	n.height = 0
-	n.size = 0
+func (n *Null) CalcExprStats() {
+	n.depth = 1
+	n.height = 1
+	n.size = 1
+	n.pos = 0
 	n.numchld = 0
-	return n.size
+}
+func (n *Null) calcExprStatsR(depth int, pos *int) {
+	n.depth = depth + 1
+	n.height = 1
+	n.size = 1
+	n.pos = *pos
+	(*pos)++
+	n.numchld = 0
 }
 
 func (n *Null) AmILess(r Expr) bool       { return NULL < r.ExprType() }
@@ -219,40 +228,100 @@ func (n *Null) DerivVar(i int) Expr   { return &ConstantF{F: 0} }
 
 
 
-
 func DumpExprTypes() {
 	fmt.Printf("ExprTypes:\n")
 	fmt.Printf("---------------\n")
 
-	fmt.Printf("NULL:      %v\n", NULL)
+	fmt.Printf("NULL:      %d\n", int(NULL))
 
-	fmt.Printf("STARTLEAF: %v\n", STARTLEAF)
-	fmt.Printf("CONSTANT:  %v\n", CONSTANT)
-	fmt.Printf("TIME:      %v\n", TIME)
-	fmt.Printf("SYSTEM:    %v\n", SYSTEM)
-	fmt.Printf("VAR:       %v\n", VAR)
-	fmt.Printf("LASTLEAF:  %v\n", LASTLEAF)
+	fmt.Printf("STARTLEAF: %d\n", int(STARTLEAF))
+	fmt.Printf("CONSTANT:  %d\n", int(CONSTANT))
+	fmt.Printf("TIME:      %d\n", int(TIME))
+	fmt.Printf("SYSTEM:    %d\n", int(SYSTEM))
+	fmt.Printf("VAR:       %d\n", int(VAR))
+	fmt.Printf("LASTLEAF:  %d\n", int(LASTLEAF))
 
-	fmt.Printf("STARTFUNC: %v\n", STARTFUNC)
-	fmt.Printf("NEG:       %v\n", NEG)
-	fmt.Printf("ABS:       %v\n", ABS)
-	fmt.Printf("SQRT:      %v\n", SQRT)
-	fmt.Printf("SIN:       %v\n", SIN)
-	fmt.Printf("COS:       %v\n", COS)
-	fmt.Printf("TAN:       %v\n", TAN)
-	fmt.Printf("EXP:       %v\n", EXP)
-	fmt.Printf("LOG:       %v\n", LOG)
-	fmt.Printf("LASTFUNC:  %v\n", LASTFUNC)
+	fmt.Printf("STARTFUNC: %d\n", int(STARTFUNC))
+	fmt.Printf("NEG:       %d\n", int(NEG))
+	fmt.Printf("ABS:       %d\n", int(ABS))
+	fmt.Printf("SQRT:      %d\n", int(SQRT))
+	fmt.Printf("SIN:       %d\n", int(SIN))
+	fmt.Printf("COS:       %d\n", int(COS))
+	fmt.Printf("TAN:       %d\n", int(TAN))
+	fmt.Printf("EXP:       %d\n", int(EXP))
+	fmt.Printf("LOG:       %d\n", int(LOG))
+	fmt.Printf("LASTFUNC:  %d\n", int(LASTFUNC))
 
-	fmt.Printf("POWI:      %v\n", POWI)
-	fmt.Printf("POWF:      %v\n", POWF)
-	fmt.Printf("POWE:      %v\n", POWE)
-	fmt.Printf("DIV:       %v\n", DIV)
+	fmt.Printf("POWI:      %d\n", int(POWI))
+	fmt.Printf("POWF:      %d\n", int(POWF))
+	fmt.Printf("POWE:      %d\n", int(POWE))
+	fmt.Printf("DIV:       %d\n", int(DIV))
 
-	fmt.Printf("ADD:       %v\n", ADD)
-	fmt.Printf("MUL:       %v\n", MUL)
+	fmt.Printf("ADD:       %d\n", int(ADD))
+	fmt.Printf("MUL:       %d\n", int(MUL))
 
-	fmt.Printf("EXPR_MAX:  %v\n", EXPR_MAX)
-	fmt.Printf("STARTVAR:  %v\n", STARTVAR)
+	fmt.Printf("EXPR_MAX:  %d\n", int(EXPR_MAX))
+	fmt.Printf("STARTVAR:  %d\n", int(STARTVAR))
 
 }
+
+func (e ExprType) String() string {
+	switch e {
+	case NULL:
+		return "NULL"
+	case STARTLEAF:
+		return "STARTLEAF"
+	case CONSTANT:
+		return "CONSTANT"
+	case CONSTANTF:
+		return "CONSTANTF"
+	case TIME:
+		return "TIME"
+	case SYSTEM:
+		return "SYSTEM"
+	case VAR:
+		return "VAR"
+	case LASTLEAF:
+		return "LASTLEAF"
+	case STARTFUNC:
+		return "STARTFUNC"
+	case NEG:
+		return "NEG"
+	case ABS:
+		return "ABS"
+	case SQRT:
+		return "SQRT"
+	case SIN:
+		return "SIN"
+	case COS:
+		return "COS"
+	case TAN:
+		return "TAN"
+	case EXP:
+		return "EXP"
+	case LOG:
+		return "LOG"
+	case LASTFUNC:
+		return "LASTFUNC"
+	case POWI:
+		return "POWI"
+	case POWF:
+		return "POWF"
+	case POWE:
+		return "POWE"
+	case DIV:
+		return "DIV"
+	case ADD:
+		return "ADD"
+	case MUL:
+		return "MUL"
+	case EXPR_MAX:
+		return "EXPR_MAX"
+	case STARTVAR:
+		return "STARTVAR"
+	default:
+		return "Unknown ExprType"
+	}
+	return "Unknown ExprType"
+}
+>>>>>>> 15d29256e845934809070d1c242066c2c8cb2cee
