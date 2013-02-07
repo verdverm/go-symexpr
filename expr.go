@@ -112,6 +112,7 @@ type Expr interface {
 	// Associative operators (+ & *) also include the number of children.
 	// The terminal nodes include the index when appropriate.
 	Serial([]int) []int
+	StackSerial([]int) []int
 
 	// Pretty print acts like String, but replaces the internal indexed
 	// formatting with user specified strings and values
@@ -216,6 +217,7 @@ func (n *Null) SetExpr(pos *int, e Expr) (replace_me, replaced bool) {
 
 func (n *Null) String() string                                              { return "NULL" }
 func (n *Null) Serial(sofar []int) []int                                    { return append(sofar, int(NULL)) }
+func (n *Null) StackSerial(sofar []int) []int                               { return append(sofar, int(NULL)) }
 func (n *Null) PrettyPrint(dnames, snames []string, cvals []float64) string { return "NULL" }
 func (n *Null) Latex(dnames, snames []string, cvals []float64) string       { return "NULL" }
 
@@ -225,8 +227,6 @@ func (n *Null) Simplify(rules SimpRules) Expr { return n }
 
 func (n *Null) DerivConst(i int) Expr { return &ConstantF{F: 0} }
 func (n *Null) DerivVar(i int) Expr   { return &ConstantF{F: 0} }
-
-
 
 func DumpExprTypes() {
 	fmt.Printf("ExprTypes:\n")
