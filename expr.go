@@ -48,7 +48,7 @@ const (
 )
 
 // Expr is the interface to all node types for the AST of mathematical expression
-// 
+//
 type Expr interface {
 
 	// types.go (this file)
@@ -85,7 +85,7 @@ type Expr interface {
 	// convert.go
 
 	// Converts indexed Constant nodes to ConstantF nodes
-	// using the input slice as the values for replacement 
+	// using the input slice as the values for replacement
 	ConvertToConstantFs(cs []float64) Expr
 	// DFS converting float valued constants to indexed constants
 	// the input should be an empty slice
@@ -93,7 +93,7 @@ type Expr interface {
 	ConvertToConstants(cs []float64) ([]float64, Expr)
 	//   IndexConstants( ci int ) int
 
-	// getset.go   
+	// getset.go
 	// DFS retrieval of a node by index
 	GetExpr(pos *int) Expr
 	// DFS replacement of a node and it's subtree
@@ -103,7 +103,7 @@ type Expr interface {
 
 	// print.go
 
-	// prints the AST 
+	// prints the AST
 	String() string
 
 	// creates an integer representation of the AST in ~prefix notation
@@ -121,6 +121,7 @@ type Expr interface {
 
 	// Similar to PrettyPrint, but in latex format
 	Latex(dnames, snames []string, cvals []float64) string
+	Javascript(dnames, snames []string, cvals []float64) string
 
 	// eval.go
 	// Evaluates an expression at one point
@@ -220,6 +221,7 @@ func (n *Null) Serial(sofar []int) []int                                    { re
 func (n *Null) StackSerial(sofar []int) []int                               { return append(sofar, int(NULL)) }
 func (n *Null) PrettyPrint(dnames, snames []string, cvals []float64) string { return "NULL" }
 func (n *Null) Latex(dnames, snames []string, cvals []float64) string       { return "NULL" }
+func (n *Null) Javascript(dnames, snames []string, cvals []float64) string  { return "null" }
 
 func (n *Null) Eval(t float64, x, c, s []float64) float64 { return math.NaN() }
 

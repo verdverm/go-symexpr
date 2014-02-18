@@ -176,7 +176,7 @@ func parsePiece(prefix string, L *lexer) Expr {
 		}
 		return e
 	} else if typ == itemIdentifier { // leaf
-		if next.val[0] == 'c' {
+		if next.val[0] == 'C' {
 			// coefficient
 			ipos := strings.Index(next.val, "_") + 1
 			index, err := strconv.ParseInt(next.val[ipos:], 0, 64)
